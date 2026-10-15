@@ -113,9 +113,17 @@ export async function optimizeImage(
 
   const buffer = await pipeline.toBuffer();
   const optimizedSizeBytes = buffer.length;
+  const outMeta = await sharp(buffer).metadata();
+  const finalWidth = outMeta.width ?? width;
+  const finalHeight = outMeta.height ?? height;
 
-  // SAFETY GUARD: If optimized file is larger, keep original!
-  if (optimizedSizeBytes >= originalSizeBytes && targetFormat === 'original') {
+  // SAFETY GUARD: If optimized file is larger and not explicitly resized, keep original!
+  if (
+    optimizedSizeBytes >= originalSizeBytes &&
+    targetFormat === 'original' &&
+    !options.maxWidth &&
+    !options.maxHeight
+  ) {
     if (src !== dest) {
       await fs.promises.copyFile(src, dest);
     }
@@ -147,8 +155,8 @@ export async function optimizeImage(
     savedBytes,
     savedPercentage,
     format: targetFormat === 'original' ? origFormat : targetFormat,
-    width,
-    height,
+    width: finalWidth,
+    height: finalHeight,
     skipped: false,
   };
 }

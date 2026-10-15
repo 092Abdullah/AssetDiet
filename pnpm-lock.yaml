@@ -39,6 +39,67 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.5)
 
+  apps/cli:
+    dependencies:
+      '@assetdiet/asset-graph':
+        specifier: workspace:*
+        version: link:../../packages/asset-graph
+      '@assetdiet/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@assetdiet/optimizer-3d':
+        specifier: workspace:*
+        version: link:../../packages/optimizer-3d
+      '@assetdiet/optimizer-fonts':
+        specifier: workspace:*
+        version: link:../../packages/optimizer-fonts
+      '@assetdiet/optimizer-images':
+        specifier: workspace:*
+        version: link:../../packages/optimizer-images
+      '@assetdiet/optimizer-svg':
+        specifier: workspace:*
+        version: link:../../packages/optimizer-svg
+      '@assetdiet/optimizer-video':
+        specifier: workspace:*
+        version: link:../../packages/optimizer-video
+      '@assetdiet/planner':
+        specifier: workspace:*
+        version: link:../../packages/planner
+      '@assetdiet/reference-analyzer':
+        specifier: workspace:*
+        version: link:../../packages/reference-analyzer
+      '@assetdiet/reporting':
+        specifier: workspace:*
+        version: link:../../packages/reporting
+      '@assetdiet/scanner':
+        specifier: workspace:*
+        version: link:../../packages/scanner
+      '@assetdiet/transactions':
+        specifier: workspace:*
+        version: link:../../packages/transactions
+      '@assetdiet/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+      commander:
+        specifier: ^12.1.0
+        version: 12.1.0
+    devDependencies:
+      '@assetdiet/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.5
+      rimraf:
+        specifier: ^5.0.10
+        version: 5.0.10
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.5)
+
   apps/mcp-server:
     dependencies:
       '@assetdiet/asset-graph':
@@ -1429,6 +1490,10 @@ packages:
   color@4.2.3:
     resolution: {integrity: sha512-1rXeuUUiGGrykh+CeBdu5Ie7OJwinCgQY0bc7GCRxy5xVHy+moaqkpL/jqQq0MtQOeYcrqEz4abc5f0KtU7W4A==}
     engines: {node: '>=12.5.0'}
+
+  commander@12.1.0:
+    resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
+    engines: {node: '>=18'}
 
   commander@7.2.0:
     resolution: {integrity: sha512-QrWXB+ZQSVPmIWIhtEO9H+gwHaMGYiF5ChvoJ+K9ZGHG/sVsa6yiesAD1GC/x46sET00Xlwo1u49RVVVzvcSkw==}
@@ -3439,6 +3504,8 @@ snapshots:
     dependencies:
       color-convert: 2.0.1
       color-string: 1.9.1
+
+  commander@12.1.0: {}
 
   commander@7.2.0: {}
 

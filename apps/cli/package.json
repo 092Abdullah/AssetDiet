@@ -1,0 +1,40 @@
+{
+  "name": "@assetdiet/cli",
+  "version": "0.1.0",
+  "description": "AssetDiet standalone developer CLI",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "assetdiet": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "clean": "rimraf dist .tsbuildinfo"
+  },
+  "dependencies": {
+    "@assetdiet/core": "workspace:*",
+    "@assetdiet/scanner": "workspace:*",
+    "@assetdiet/asset-graph": "workspace:*",
+    "@assetdiet/planner": "workspace:*",
+    "@assetdiet/optimizer-images": "workspace:*",
+    "@assetdiet/optimizer-svg": "workspace:*",
+    "@assetdiet/optimizer-video": "workspace:*",
+    "@assetdiet/optimizer-3d": "workspace:*",
+    "@assetdiet/optimizer-fonts": "workspace:*",
+    "@assetdiet/reference-analyzer": "workspace:*",
+    "@assetdiet/validation": "workspace:*",
+    "@assetdiet/transactions": "workspace:*",
+    "@assetdiet/reporting": "workspace:*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@assetdiet/typescript-config": "workspace:*",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "rimraf": "^5.0.10"
+  }
+}

@@ -5,7 +5,8 @@
 
 import path from 'node:path';
 import fs from 'node:fs';
-import { glob } from 'fast-glob';
+import fg from 'fast-glob';
+const glob = typeof fg === 'function' ? fg : (fg as unknown as { default: typeof fg }).default;
 import ignoreFactory, { type Ignore } from 'ignore';
 import {
   type AssetRecord,

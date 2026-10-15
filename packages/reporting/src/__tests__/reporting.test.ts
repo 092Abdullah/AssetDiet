@@ -38,7 +38,7 @@ describe('Reporting Engine', () => {
   it('generates a valid Markdown report with rollback command', () => {
     const md = generateMarkdownReport(sampleData);
     expect(md).toContain('# AssetDiet Run Report — run-test-1');
-    expect(md).toContain('40 KB (40%)');
+    expect(md).toContain('39.06 KB (40%)');
     expect(md).toContain('assetdiet restore --run run-test-1');
   });
 
