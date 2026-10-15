@@ -2,8 +2,8 @@
  * AssetDiet Asset Graph — Duplicate Detection and Opportunity Ranking
  */
 
-import type { AssetRecord } from '@assetdiet/core';
-import type { ScanResult } from '@assetdiet/scanner';
+import type { AssetRecord } from "@assetdiet/core";
+import type { ScanResult } from "@assetdiet/scanner";
 
 export interface DuplicateGroup {
   hash: string;
@@ -12,11 +12,17 @@ export interface DuplicateGroup {
   wastedBytes: number;
 }
 
-export type RiskLevel = 'none' | 'low' | 'medium' | 'high';
+export type RiskLevel = "none" | "low" | "medium" | "high";
 
 export interface OptimizationOpportunity {
   asset: AssetRecord;
-  action: 'compress' | 'convert-format' | 'resize' | 'transcode' | 'remove-duplicate' | 'flag-unused';
+  action:
+    | "compress"
+    | "convert-format"
+    | "resize"
+    | "transcode"
+    | "remove-duplicate"
+    | "flag-unused";
   /** Estimated savings in bytes (may be imprecise before actual optimization) */
   estimatedSavingsBytes: number;
   /** Confidence in the estimate (0–1) */
@@ -92,58 +98,69 @@ function rankOpportunities(assets: AssetRecord[]): OptimizationOpportunity[] {
 
   // Sort by value (savings × confidence) descending
   return opps.sort(
-    (a, b) => b.estimatedSavingsBytes * b.confidence - a.estimatedSavingsBytes * a.confidence
+    (a, b) =>
+      b.estimatedSavingsBytes * b.confidence -
+      a.estimatedSavingsBytes * a.confidence,
   );
 }
 
 /**
  * Analyze a single asset and produce an optimization opportunity if one exists.
  */
-function analyzeOpportunity(asset: AssetRecord): OptimizationOpportunity | null {
+function analyzeOpportunity(
+  asset: AssetRecord,
+): OptimizationOpportunity | null {
   if (asset.isDuplicate && asset.duplicateOf) {
     return {
       asset,
-      action: 'remove-duplicate',
+      action: "remove-duplicate",
       estimatedSavingsBytes: asset.sizeBytes,
       confidence: 1.0,
-      risk: 'low',
+      risk: "low",
       reason: `Exact duplicate of another file (hash: ${asset.duplicateOf.slice(0, 8)}...)`,
     };
   }
 
-  if (asset.type === 'image') {
+  if (asset.type === "image") {
     return analyzeImageOpportunity(asset);
   }
 
-  if (asset.type === 'svg') {
+  if (asset.type === "svg") {
     return analyzeSvgOpportunity(asset);
   }
 
-  if (asset.type === 'video') {
+  if (asset.type === "video") {
     return analyzeVideoOpportunity(asset);
   }
 
-  if (asset.type === '3d') {
+  if (asset.type === "3d") {
     return analyze3DOpportunity(asset);
   }
 
   return null;
 }
 
-function analyzeImageOpportunity(asset: AssetRecord): OptimizationOpportunity | null {
+function analyzeImageOpportunity(
+  asset: AssetRecord,
+): OptimizationOpportunity | null {
   // Heuristic: large PNGs and JPEGs over 50KB almost always benefit from compression
   if (asset.sizeBytes < 10_000) return null;
 
-  const meta = asset.metadata?.type === 'image' ? asset.metadata.data : null;
+  const meta = asset.metadata?.type === "image" ? asset.metadata.data : null;
 
   // If it's a PNG without alpha channel, suggest WebP conversion
-  if (asset.extension === '.png' && meta && !meta.hasAlpha && !meta.isAnimated) {
+  if (
+    asset.extension === ".png" &&
+    meta &&
+    !meta.hasAlpha &&
+    !meta.isAnimated
+  ) {
     return {
       asset,
-      action: 'convert-format',
+      action: "convert-format",
       estimatedSavingsBytes: Math.round(asset.sizeBytes * 0.35),
       confidence: 0.75,
-      risk: 'low',
+      risk: "low",
       reason: `PNG without transparency (${(asset.sizeBytes / 1024).toFixed(0)}KB) — WebP conversion typically saves 30-40%`,
     };
   }
@@ -152,10 +169,10 @@ function analyzeImageOpportunity(asset: AssetRecord): OptimizationOpportunity | 
   if (asset.sizeBytes > 200_000) {
     return {
       asset,
-      action: 'compress',
+      action: "compress",
       estimatedSavingsBytes: Math.round(asset.sizeBytes * 0.25),
       confidence: 0.65,
-      risk: 'none',
+      risk: "none",
       reason: `Large image (${(asset.sizeBytes / 1024).toFixed(0)}KB) — compression can reduce size significantly`,
     };
   }
@@ -163,41 +180,47 @@ function analyzeImageOpportunity(asset: AssetRecord): OptimizationOpportunity | 
   return null;
 }
 
-function analyzeSvgOpportunity(asset: AssetRecord): OptimizationOpportunity | null {
+function analyzeSvgOpportunity(
+  asset: AssetRecord,
+): OptimizationOpportunity | null {
   if (asset.sizeBytes < 500) return null;
 
   return {
     asset,
-    action: 'compress',
+    action: "compress",
     estimatedSavingsBytes: Math.round(asset.sizeBytes * 0.3),
     confidence: 0.8,
-    risk: 'none',
+    risk: "none",
     reason: `SVG (${(asset.sizeBytes / 1024).toFixed(0)}KB) — SVGO typically reduces SVG size by 20-40%`,
   };
 }
 
-function analyzeVideoOpportunity(asset: AssetRecord): OptimizationOpportunity | null {
+function analyzeVideoOpportunity(
+  asset: AssetRecord,
+): OptimizationOpportunity | null {
   if (asset.sizeBytes < 1_000_000) return null; // < 1MB, skip
 
   return {
     asset,
-    action: 'transcode',
+    action: "transcode",
     estimatedSavingsBytes: Math.round(asset.sizeBytes * 0.3),
     confidence: 0.5,
-    risk: 'medium',
+    risk: "medium",
     reason: `Video (${(asset.sizeBytes / 1024 / 1024).toFixed(1)}MB) — transcoding with optimized CRF can reduce size`,
   };
 }
 
-function analyze3DOpportunity(asset: AssetRecord): OptimizationOpportunity | null {
+function analyze3DOpportunity(
+  asset: AssetRecord,
+): OptimizationOpportunity | null {
   if (asset.sizeBytes < 100_000) return null;
 
   return {
     asset,
-    action: 'compress',
+    action: "compress",
     estimatedSavingsBytes: Math.round(asset.sizeBytes * 0.4),
     confidence: 0.6,
-    risk: 'low',
+    risk: "low",
     reason: `3D model (${(asset.sizeBytes / 1024).toFixed(0)}KB) — Draco compression typically saves 30-60%`,
   };
 }

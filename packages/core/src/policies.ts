@@ -3,7 +3,12 @@
  * Defines the allowed optimization modes and their constraints.
  */
 
-export const OPTIMIZATION_POLICIES = ['audit', 'safe', 'balanced', 'aggressive'] as const;
+export const OPTIMIZATION_POLICIES = [
+  "audit",
+  "safe",
+  "balanced",
+  "aggressive",
+] as const;
 export type OptimizationPolicy = (typeof OPTIMIZATION_POLICIES)[number];
 
 export interface PolicyConstraints {
@@ -27,7 +32,9 @@ export interface PolicyConstraints {
   alreadyOptimizedThreshold: number;
 }
 
-export const POLICY_CONSTRAINTS: Readonly<Record<OptimizationPolicy, PolicyConstraints>> = {
+export const POLICY_CONSTRAINTS: Readonly<
+  Record<OptimizationPolicy, PolicyConstraints>
+> = {
   audit: {
     allowWrites: false,
     allowFormatConversion: false,
@@ -74,6 +81,8 @@ export const POLICY_CONSTRAINTS: Readonly<Record<OptimizationPolicy, PolicyConst
   },
 } as const;
 
-export function getPolicyConstraints(policy: OptimizationPolicy): PolicyConstraints {
+export function getPolicyConstraints(
+  policy: OptimizationPolicy,
+): PolicyConstraints {
   return POLICY_CONSTRAINTS[policy];
 }

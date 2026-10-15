@@ -3,17 +3,21 @@
  * Parses SVG XML to extract structural metadata without executing anything.
  */
 
-import fs from 'node:fs';
-import type { AssetMetadata } from '@assetdiet/core';
+import fs from "node:fs";
+import type { AssetMetadata } from "@assetdiet/core";
 
 // Simple regex-based SVG analysis — no XML parser dependency needed for metadata
 // We use basic patterns to avoid executing any embedded content.
 
-export async function extractSvgMetadata(filePath: string): Promise<AssetMetadata> {
-  const content = await fs.promises.readFile(filePath, 'utf-8');
+export async function extractSvgMetadata(
+  filePath: string,
+): Promise<AssetMetadata> {
+  const content = await fs.promises.readFile(filePath, "utf-8");
 
   const hasViewBox = /viewBox\s*=\s*["'][^"']*["']/.test(content);
-  const hasAnimations = /<(animate|animateTransform|animateMotion|set)\b/.test(content);
+  const hasAnimations = /<(animate|animateTransform|animateMotion|set)\b/.test(
+    content,
+  );
   const hasExternalResources =
     /\bhref\s*=\s*["']https?:\/\//.test(content) ||
     /xlink:href\s*=\s*["']https?:\/\//.test(content);
@@ -26,12 +30,12 @@ export async function extractSvgMetadata(filePath: string): Promise<AssetMetadat
 
   // Extract width/height from root SVG element
   const svgTagMatch = content.match(/<svg\b([^>]*)>/i);
-  const svgAttrs = svgTagMatch?.[1] ?? '';
+  const svgAttrs = svgTagMatch?.[1] ?? "";
   const widthMatch = svgAttrs.match(/\bwidth\s*=\s*["']([^"']+)["']/);
   const heightMatch = svgAttrs.match(/\bheight\s*=\s*["']([^"']+)["']/);
 
   return {
-    type: 'svg',
+    type: "svg",
     data: {
       hasViewBox,
       hasAnimations,

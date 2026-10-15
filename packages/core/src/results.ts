@@ -4,11 +4,7 @@
  */
 
 export type ResultStatus =
-  | 'ok'
-  | 'completed_with_warnings'
-  | 'dry_run'
-  | 'error'
-  | 'cancelled';
+  "ok" | "completed_with_warnings" | "dry_run" | "error" | "cancelled";
 
 export interface ErrorEntry {
   code: string;
@@ -39,10 +35,10 @@ export function okResult<T>(
   data: T,
   runId: string,
   durationMs: number,
-  warnings: WarningEntry[] = []
+  warnings: WarningEntry[] = [],
 ): StructuredResult<T> {
   return {
-    status: warnings.length > 0 ? 'completed_with_warnings' : 'ok',
+    status: warnings.length > 0 ? "completed_with_warnings" : "ok",
     data,
     errors: [],
     warnings,
@@ -56,10 +52,10 @@ export function okResult<T>(
 export function errorResult<T = null>(
   error: ErrorEntry,
   runId: string,
-  durationMs: number
+  durationMs: number,
 ): StructuredResult<T> {
   return {
-    status: 'error',
+    status: "error",
     data: null as T,
     errors: [error],
     warnings: [],
@@ -74,10 +70,10 @@ export function dryRunResult<T>(
   data: T,
   runId: string,
   durationMs: number,
-  warnings: WarningEntry[] = []
+  warnings: WarningEntry[] = [],
 ): StructuredResult<T> {
   return {
-    status: 'dry_run',
+    status: "dry_run",
     data,
     errors: [],
     warnings,

@@ -2,14 +2,24 @@
  * AssetDiet Planner — Builds optimization execution plans
  */
 
-import type { AssetGraph, OptimizationOpportunity, RiskLevel } from '@assetdiet/asset-graph';
-import type { OptimizationPolicy } from '@assetdiet/core';
+import type {
+  AssetGraph,
+  OptimizationOpportunity,
+  RiskLevel,
+} from "@assetdiet/asset-graph";
+import type { OptimizationPolicy } from "@assetdiet/core";
 
 export interface OptimizationTask {
   id: string;
   assetPath: string;
   assetType: string;
-  action: 'compress' | 'convert-format' | 'resize' | 'transcode' | 'remove-duplicate' | 'flag-unused';
+  action:
+    | "compress"
+    | "convert-format"
+    | "resize"
+    | "transcode"
+    | "remove-duplicate"
+    | "flag-unused";
   estimatedSavingsBytes: number;
   confidence: number;
   risk: RiskLevel;
@@ -33,14 +43,14 @@ const POLICY_LEVELS: Record<OptimizationPolicy, number> = {
 
 function getRequiredPolicyForRisk(risk: RiskLevel): OptimizationPolicy {
   switch (risk) {
-    case 'none':
-      return 'safe';
-    case 'low':
-      return 'safe';
-    case 'medium':
-      return 'balanced';
-    case 'high':
-      return 'aggressive';
+    case "none":
+      return "safe";
+    case "low":
+      return "safe";
+    case "medium":
+      return "balanced";
+    case "high":
+      return "aggressive";
   }
 }
 
@@ -49,10 +59,13 @@ function getRequiredPolicyForRisk(risk: RiskLevel): OptimizationPolicy {
  */
 export function createOptimizationPlan(
   graph: AssetGraph,
-  policy: OptimizationPolicy = 'safe',
-  dryRun = false
+  policy: OptimizationPolicy = "safe",
+  dryRun = false,
 ): OptimizationPlan {
-  const currentPolicyLevel = POLICY_LEVELS[policy];
+  const isAudit = policy === "audit";
+  const effectivePolicy = isAudit ? "safe" : policy;
+  const currentPolicyLevel = POLICY_LEVELS[effectivePolicy];
+  const isDry = dryRun || isAudit;
   const tasks: OptimizationTask[] = [];
   let estimatedTotalSavingsBytes = 0;
 
@@ -74,7 +87,9 @@ export function createOptimizationPlan(
         reason: opp.reason,
       });
 
-      estimatedTotalSavingsBytes += Math.round(opp.estimatedSavingsBytes * opp.confidence);
+      estimatedTotalSavingsBytes += Math.round(
+        opp.estimatedSavingsBytes * opp.confidence,
+      );
     }
   }
 

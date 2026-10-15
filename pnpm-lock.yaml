@@ -93,12 +93,18 @@ importers:
       '@assetdiet/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
+      '@gltf-transform/core':
+        specifier: ^4.0.0
+        version: 4.5.1
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.5
       rimraf:
         specifier: ^5.0.10
         version: 5.0.10
+      sharp:
+        specifier: 0.33.5
+        version: 0.33.5
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

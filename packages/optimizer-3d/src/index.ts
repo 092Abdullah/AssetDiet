@@ -9,12 +9,12 @@
  * - 'audit' policy never modifies files; 'safe' policy avoids lossy geometry alteration.
  */
 
-import { NodeIO } from '@gltf-transform/core';
-import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { dedup, prune, weld, resample, draco } from '@gltf-transform/functions';
-import fs from 'node:fs';
-import path from 'node:path';
-import type { OptimizationPolicy } from '@assetdiet/core';
+import { NodeIO } from "@gltf-transform/core";
+import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
+import { dedup, prune, weld, resample, draco } from "@gltf-transform/functions";
+import fs from "node:fs";
+import path from "node:path";
+import type { OptimizationPolicy } from "@assetdiet/core";
 
 export interface Model3DOptimizeOptions {
   weldTolerance?: number;
@@ -38,13 +38,13 @@ export async function optimize3D(
   src: string,
   dest: string,
   options: Model3DOptimizeOptions = {},
-  policy: OptimizationPolicy = 'safe'
+  policy: OptimizationPolicy = "safe",
 ): Promise<Model3DOptimizeResult> {
   const stat = await fs.promises.stat(src);
   const originalSizeBytes = stat.size;
 
   // 1. Audit Policy Guard: Never modify files
-  if (policy === 'audit') {
+  if (policy === "audit") {
     return {
       sourcePath: src,
       outputPath: dest,
@@ -53,7 +53,7 @@ export async function optimize3D(
       savedBytes: 0,
       savedPercentage: 0,
       skipped: true,
-      reason: 'Audit policy: file modification disabled',
+      reason: "Audit policy: file modification disabled",
     };
   }
 
@@ -61,23 +61,15 @@ export async function optimize3D(
   const document = await io.read(src);
 
   // 2. Select transforms based on policy
-  if (policy === 'safe') {
+  if (policy === "safe") {
     // Safe policy: strictly lossless deduplication and pruning only
-    await document.transform(
-      dedup(),
-      prune()
-    );
+    await document.transform(dedup(), prune());
   } else {
     // Balanced / Aggressive: deduplicate, prune, weld close vertices, resample animation tracks
-    const transforms: any[] = [
-      dedup(),
-      prune(),
-      weld(),
-      resample()
-    ];
+    const transforms: any[] = [dedup(), prune(), weld(), resample()];
 
     // Draco geometry compression if explicitly enabled or aggressive policy
-    if (options.enableDraco || policy === 'aggressive') {
+    if (options.enableDraco || policy === "aggressive") {
       try {
         transforms.push(draco());
       } catch {
@@ -99,7 +91,7 @@ export async function optimize3D(
   // Use a temporary output file so in-place operations never truncate original
   const tempOutputFile = path.join(
     destDir,
-    `.${path.basename(dest)}.assetdiet-tmp-${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(dest)}`
+    `.${path.basename(dest)}.assetdiet-tmp-${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(dest)}`,
   );
 
   try {
@@ -121,14 +113,17 @@ export async function optimize3D(
         savedBytes: 0,
         savedPercentage: 0,
         skipped: true,
-        reason: 'Optimized 3D model was not smaller than original; original preserved',
+        reason:
+          "Optimized 3D model was not smaller than original; original preserved",
       };
     }
 
     // Deep validation: verify the written file can be parsed back
     const verifyDoc = await io.read(tempOutputFile);
     if (!verifyDoc.getRoot()) {
-      throw new Error('Optimized 3D model verification failed: missing scene root');
+      throw new Error(
+        "Optimized 3D model verification failed: missing scene root",
+      );
     }
 
     // Atomic replacement
@@ -140,7 +135,9 @@ export async function optimize3D(
     }
 
     const savedBytes = originalSizeBytes - optimizedSizeBytes;
-    const savedPercentage = Number(((savedBytes / originalSizeBytes) * 100).toFixed(2));
+    const savedPercentage = Number(
+      ((savedBytes / originalSizeBytes) * 100).toFixed(2),
+    );
 
     return {
       sourcePath: src,

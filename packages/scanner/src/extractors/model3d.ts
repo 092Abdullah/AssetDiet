@@ -3,9 +3,9 @@
  * Uses @gltf-transform/core to read GLB/GLTF model metadata.
  */
 
-import { NodeIO } from '@gltf-transform/core';
-import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import type { AssetMetadata } from '@assetdiet/core';
+import { NodeIO } from "@gltf-transform/core";
+import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
+import type { AssetMetadata } from "@assetdiet/core";
 
 let io: NodeIO | null = null;
 
@@ -16,7 +16,9 @@ function getIO(): NodeIO {
   return io;
 }
 
-export async function extract3DMetadata(filePath: string): Promise<AssetMetadata> {
+export async function extract3DMetadata(
+  filePath: string,
+): Promise<AssetMetadata> {
   try {
     const document = await getIO().read(filePath);
     const root = document.getRoot();
@@ -32,7 +34,7 @@ export async function extract3DMetadata(filePath: string): Promise<AssetMetadata
 
     for (const mesh of meshes) {
       for (const primitive of mesh.listPrimitives()) {
-        const position = primitive.getAttribute('POSITION');
+        const position = primitive.getAttribute("POSITION");
         if (position) {
           vertexCount += position.getCount();
         }
@@ -44,10 +46,12 @@ export async function extract3DMetadata(filePath: string): Promise<AssetMetadata
     }
 
     // Collect extension names used
-    const extensionNames = root.listExtensionsUsed().map((e: { extensionName: string }) => e.extensionName);
+    const extensionNames = root
+      .listExtensionsUsed()
+      .map((e: { extensionName: string }) => e.extensionName);
 
     return {
-      type: '3d',
+      type: "3d",
       data: {
         meshCount: meshes.length,
         materialCount: materials.length,
@@ -61,7 +65,7 @@ export async function extract3DMetadata(filePath: string): Promise<AssetMetadata
     };
   } catch {
     return {
-      type: '3d',
+      type: "3d",
       data: {
         meshCount: 0,
         materialCount: 0,

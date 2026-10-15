@@ -3,8 +3,8 @@
  * Carries all runtime configuration for a single scan/optimize run.
  */
 
-import { parseConfig, type AssetDietConfig } from './config.js';
-import type { OptimizationPolicy } from './policies.js';
+import { parseConfig, type AssetDietConfig } from "./config.js";
+import type { OptimizationPolicy } from "./policies.js";
 
 export interface RunContext {
   /** Absolute path to the workspace root */
@@ -50,15 +50,18 @@ export function createContext(options: {
   signal?: AbortSignal;
   onProgress?: (message: string) => void;
 }): RunContext {
-  const cfg = options.config ? (options.config as AssetDietConfig).policy ? options.config as AssetDietConfig : { ...parseConfig({}), ...options.config } as AssetDietConfig : parseConfig({});
+  const cfg = options.config
+    ? (options.config as AssetDietConfig).policy
+      ? (options.config as AssetDietConfig)
+      : ({ ...parseConfig({}), ...options.config } as AssetDietConfig)
+    : parseConfig({});
   return {
     root: options.root,
     config: cfg,
-    policy: options.policy ?? cfg.policy ?? 'safe',
+    policy: options.policy ?? cfg.policy ?? "safe",
     dryRun: options.dryRun ?? false,
     runId: options.runId ?? generateRunId(),
     signal: options.signal,
     onProgress: options.onProgress,
   };
 }
-

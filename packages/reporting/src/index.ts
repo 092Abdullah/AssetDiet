@@ -10,7 +10,7 @@ export interface ReportItem {
   optimizedBytes: number;
   savedBytes: number;
   savedPercentage: number;
-  status: 'optimized' | 'skipped' | 'failed';
+  status: "optimized" | "skipped" | "failed";
   reason?: string | undefined;
 }
 
@@ -33,9 +33,9 @@ export interface ReportData {
 }
 
 function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) return "0 B";
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
@@ -75,20 +75,20 @@ ${data.items
   .map(
     (item) =>
       `| \`${item.path}\` | ${item.type} | ${formatBytes(item.originalBytes)} | ${formatBytes(
-        item.optimizedBytes
-      )} | ${formatBytes(item.savedBytes)} (${item.savedPercentage}%) | ${item.status} |`
+        item.optimizedBytes,
+      )} | ${formatBytes(item.savedBytes)} (${item.savedPercentage}%) | ${item.status} |`,
   )
-  .join('\n')}
-${data.items.length > 50 ? `\n*...and ${data.items.length - 50} more files*` : ''}
+  .join("\n")}
+${data.items.length > 50 ? `\n*...and ${data.items.length - 50} more files*` : ""}
 
 ${
   data.warnings.length > 0
     ? `---
 
 ## ⚠️ Warnings
-${data.warnings.map((w) => `- ${w}`).join('\n')}
+${data.warnings.map((w) => `- ${w}`).join("\n")}
 `
-    : ''
+    : ""
 }
 
 ${
@@ -96,9 +96,9 @@ ${
     ? `---
 
 ## ❌ Errors
-${data.errors.map((e) => `- ${e}`).join('\n')}
+${data.errors.map((e) => `- ${e}`).join("\n")}
 `
-    : ''
+    : ""
 }
 
 ---
@@ -156,12 +156,12 @@ export function generateHtmlReport(data: ReportData): string {
           .map(
             (i) =>
               `<tr><td><code>${i.path}</code></td><td>${i.type}</td><td>${formatBytes(
-                i.originalBytes
+                i.originalBytes,
               )}</td><td>${formatBytes(i.optimizedBytes)}</td><td class="badge-saved">-${formatBytes(
-                i.savedBytes
-              )} (${i.savedPercentage}%)</td></tr>`
+                i.savedBytes,
+              )} (${i.savedPercentage}%)</td></tr>`,
           )
-          .join('')}
+          .join("")}
       </tbody>
     </table>
   </div>

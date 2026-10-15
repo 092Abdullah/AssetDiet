@@ -4,8 +4,8 @@
  * Returns a degraded metadata object if FFprobe is unavailable.
  */
 
-import { spawn } from 'node:child_process';
-import type { AssetMetadata } from '@assetdiet/core';
+import { spawn } from "node:child_process";
+import type { AssetMetadata } from "@assetdiet/core";
 
 interface FFprobeOutput {
   streams?: Array<{
@@ -30,25 +30,31 @@ interface FFprobeOutput {
  */
 async function runFFprobe(filePath: string): Promise<FFprobeOutput> {
   return new Promise((resolve, reject) => {
-    const proc = spawn('ffprobe', [
-      '-v', 'quiet',
-      '-print_format', 'json',
-      '-show_streams',
-      '-show_format',
+    const proc = spawn("ffprobe", [
+      "-v",
+      "quiet",
+      "-print_format",
+      "json",
+      "-show_streams",
+      "-show_format",
       filePath,
     ]);
 
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
 
-    proc.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
-    proc.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+    proc.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString();
+    });
+    proc.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
 
-    proc.on('error', (err) => {
+    proc.on("error", (err) => {
       reject(new Error(`FFprobe not found or failed to start: ${err.message}`));
     });
 
-    proc.on('close', (code) => {
+    proc.on("close", (code) => {
       if (code !== 0) {
         reject(new Error(`FFprobe exited with code ${code}: ${stderr}`));
         return;
@@ -56,7 +62,9 @@ async function runFFprobe(filePath: string): Promise<FFprobeOutput> {
       try {
         resolve(JSON.parse(stdout) as FFprobeOutput);
       } catch {
-        reject(new Error(`Failed to parse FFprobe output: ${stdout.slice(0, 200)}`));
+        reject(
+          new Error(`Failed to parse FFprobe output: ${stdout.slice(0, 200)}`),
+        );
       }
     });
   });
@@ -64,54 +72,63 @@ async function runFFprobe(filePath: string): Promise<FFprobeOutput> {
 
 function parseFrameRate(r_frame_rate?: string): number {
   if (!r_frame_rate) return 0;
-  const parts = r_frame_rate.split('/');
+  const parts = r_frame_rate.split("/");
   if (parts.length === 2) {
-    const num = parseFloat(parts[0] ?? '0');
-    const den = parseFloat(parts[1] ?? '1');
+    const num = parseFloat(parts[0] ?? "0");
+    const den = parseFloat(parts[1] ?? "1");
     return den === 0 ? 0 : Math.round((num / den) * 100) / 100;
   }
   return parseFloat(r_frame_rate);
 }
 
-export async function extractVideoMetadata(filePath: string): Promise<AssetMetadata> {
+export async function extractVideoMetadata(
+  filePath: string,
+): Promise<AssetMetadata> {
   try {
     const info = await runFFprobe(filePath);
 
-    const videoStream = info.streams?.find((s) => s.codec_type === 'video');
-    const audioStream = info.streams?.find((s) => s.codec_type === 'audio');
-    const subtitleStream = info.streams?.find((s) => s.codec_type === 'subtitle');
+    const videoStream = info.streams?.find((s) => s.codec_type === "video");
+    const audioStream = info.streams?.find((s) => s.codec_type === "audio");
+    const subtitleStream = info.streams?.find(
+      (s) => s.codec_type === "subtitle",
+    );
 
-    const duration = parseFloat(info.format?.duration ?? videoStream?.duration ?? '0');
-    const bitrate = parseInt(info.format?.bit_rate ?? videoStream?.bit_rate ?? '0', 10);
+    const duration = parseFloat(
+      info.format?.duration ?? videoStream?.duration ?? "0",
+    );
+    const bitrate = parseInt(
+      info.format?.bit_rate ?? videoStream?.bit_rate ?? "0",
+      10,
+    );
 
     return {
-      type: 'video',
+      type: "video",
       data: {
         width: videoStream?.width ?? 0,
         height: videoStream?.height ?? 0,
         duration,
         fps: parseFrameRate(videoStream?.r_frame_rate),
-        codec: videoStream?.codec_name ?? 'unknown',
+        codec: videoStream?.codec_name ?? "unknown",
         bitrate,
         hasAudio: audioStream !== undefined,
         hasSubtitles: subtitleStream !== undefined,
-        format: info.format?.format_name ?? 'unknown',
+        format: info.format?.format_name ?? "unknown",
       },
     };
   } catch {
     // FFprobe unavailable — return empty metadata
     return {
-      type: 'video',
+      type: "video",
       data: {
         width: 0,
         height: 0,
         duration: 0,
         fps: 0,
-        codec: 'unknown',
+        codec: "unknown",
         bitrate: 0,
         hasAudio: false,
         hasSubtitles: false,
-        format: 'unknown',
+        format: "unknown",
       },
     };
   }

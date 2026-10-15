@@ -1,23 +1,25 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import path from 'node:path';
-import fs from 'node:fs';
-import os from 'node:os';
-import { optimizeSvg } from '../index.js';
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
+import { optimizeSvg } from "../index.js";
 
-describe('optimizeSvg', () => {
+describe("optimizeSvg", () => {
   let tempDir: string;
 
   beforeAll(async () => {
-    tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'assetdiet-svg-test-'));
+    tempDir = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), "assetdiet-svg-test-"),
+    );
   });
 
   afterAll(async () => {
     await fs.promises.rm(tempDir, { recursive: true, force: true });
   });
 
-  it('optimizes SVG and preserves viewBox', async () => {
-    const src = path.join(tempDir, 'sample.svg');
-    const dest = path.join(tempDir, 'sample.opt.svg');
+  it("optimizes SVG and preserves viewBox", async () => {
+    const src = path.join(tempDir, "sample.svg");
+    const dest = path.join(tempDir, "sample.opt.svg");
 
     const svgWithComments = `
       <!-- Generator: Adobe Illustrator -->
@@ -27,15 +29,15 @@ describe('optimizeSvg', () => {
       </svg>
     `;
 
-    await fs.promises.writeFile(src, svgWithComments, 'utf-8');
+    await fs.promises.writeFile(src, svgWithComments, "utf-8");
 
-    const result = await optimizeSvg(src, dest, {}, 'safe');
+    const result = await optimizeSvg(src, dest, {}, "safe");
 
     expect(result.skipped).toBe(false);
     expect(result.savedBytes).toBeGreaterThan(0);
 
-    const optimizedContent = await fs.promises.readFile(dest, 'utf-8');
+    const optimizedContent = await fs.promises.readFile(dest, "utf-8");
     expect(optimizedContent).toContain('viewBox="0 0 100 100"');
-    expect(optimizedContent).not.toContain('Adobe Illustrator');
+    expect(optimizedContent).not.toContain("Adobe Illustrator");
   });
 });

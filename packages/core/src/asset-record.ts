@@ -3,7 +3,7 @@
  * The canonical data shape for a discovered asset.
  */
 
-import type { AssetType } from './asset-types.js';
+import type { AssetType } from "./asset-types.js";
 
 export interface ImageMetadata {
   width: number;
@@ -60,20 +60,27 @@ export interface SvgMetadata {
 }
 
 export type AssetMetadata =
-  | { type: 'image'; data: ImageMetadata }
-  | { type: 'video'; data: VideoMetadata }
-  | { type: '3d'; data: Model3DMetadata }
-  | { type: 'font'; data: FontMetadata }
-  | { type: 'svg'; data: SvgMetadata }
-  | { type: 'unknown'; data: Record<string, unknown> };
+  | { type: "image"; data: ImageMetadata }
+  | { type: "video"; data: VideoMetadata }
+  | { type: "3d"; data: Model3DMetadata }
+  | { type: "font"; data: FontMetadata }
+  | { type: "svg"; data: SvgMetadata }
+  | { type: "unknown"; data: Record<string, unknown> };
 
-export type ReferenceConfidence = 'confirmed' | 'probable' | 'uncertain';
+export type ReferenceConfidence = "confirmed" | "probable" | "uncertain";
 
 export interface ReferenceRecord {
   /** Absolute path of the source file containing the reference */
   sourcePath: string;
   /** Type of reference */
-  kind: 'import' | 'require' | 'css-url' | 'html-src' | 'html-srcset' | 'json-string' | 'dynamic';
+  kind:
+    | "import"
+    | "require"
+    | "css-url"
+    | "html-src"
+    | "html-srcset"
+    | "json-string"
+    | "dynamic";
   /** Line number in the source file */
   line: number;
   /** Confidence in this reference being real */
@@ -105,7 +112,7 @@ export interface AssetRecord {
    * Whether this asset appears unreferenced.
    * 'uncertain' means no static reference was found but dynamic usage is possible.
    */
-  isUnreferenced: boolean | 'uncertain';
+  isUnreferenced: boolean | "uncertain";
   /** File extension (lowercase, with leading dot) */
   extension: string;
   /** Last modified timestamp */

@@ -3,18 +3,21 @@
  * Discovers and parses references to assets in JS/TS/CSS/HTML/JSON source files.
  */
 
-import path from 'node:path';
-import fs from 'node:fs';
-import fg from 'fast-glob';
-const glob = typeof fg === 'function' ? fg : (fg as unknown as { default: typeof fg }).default;
-import ignoreFactory, { type Ignore } from 'ignore';
+import path from "node:path";
+import fs from "node:fs";
+import fg from "fast-glob";
+const glob =
+  typeof fg === "function"
+    ? fg
+    : (fg as unknown as { default: typeof fg }).default;
+import ignoreFactory, { type Ignore } from "ignore";
 import {
   type AssetRecord,
   type ReferenceRecord,
   type ReferenceConfidence,
   EXTENSION_TO_TYPE,
   normalizePath,
-} from '@assetdiet/core';
+} from "@assetdiet/core";
 
 export interface ReferenceAnalysisResult {
   totalSourceFiles: number;
@@ -27,16 +30,20 @@ export interface ReferenceAnalysisResult {
 /**
  * Regex patterns for finding asset references in code.
  */
-const IMPORT_REQUIRE_REGEX = /(?:import\s+(?:[\w*\s{},]+from\s+)?['"]([^'"]+)['"]|require\(\s*['"]([^'"]+)['"]\s*\)|import\(\s*['"]([^'"]+)['"]\s*\)|new\s+URL\(\s*['"]([^'"]+)['"]\s*,\s*import\.meta\.url\))/g;
+const IMPORT_REQUIRE_REGEX =
+  /(?:import\s+(?:[\w*\s{},]+from\s+)?['"]([^'"]+)['"]|require\(\s*['"]([^'"]+)['"]\s*\)|import\(\s*['"]([^'"]+)['"]\s*\)|new\s+URL\(\s*['"]([^'"]+)['"]\s*,\s*import\.meta\.url\))/g;
 const CSS_URL_REGEX = /url\(\s*['"]?([^'")]+)['"]?\s*\)/gi;
-const HTML_SRC_REGEX = /<(?:img|video|audio|source|link)\b[^>]*?\b(?:src|srcset|href)\s*=\s*["']([^"']+)["']/gi;
+const HTML_SRC_REGEX =
+  /<(?:img|video|audio|source|link)\b[^>]*?\b(?:src|srcset|href)\s*=\s*["']([^"']+)["']/gi;
 const JSON_STRING_REGEX = /"([^"\\]*(?:\\.[^"\\]*)*)"/g;
 
 /**
  * Determine if a target string has an asset extension.
  */
 function hasAssetExtension(target: string): boolean {
-  const ext = path.extname(target.split('?')[0]?.split('#')[0] ?? '').toLowerCase();
+  const ext = path
+    .extname(target.split("?")[0]?.split("#")[0] ?? "")
+    .toLowerCase();
   return ext in EXTENSION_TO_TYPE;
 }
 
@@ -45,29 +52,44 @@ function hasAssetExtension(target: string): boolean {
  */
 export function extractReferencesFromSource(
   sourcePath: string,
-  content: string
+  content: string,
 ): ReferenceRecord[] {
   const records: ReferenceRecord[] = [];
   const ext = path.extname(sourcePath).toLowerCase();
-  const lines = content.split('\n');
+  const lines = content.split("\n");
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-    const line = lines[lineIndex] ?? '';
+    const line = lines[lineIndex] ?? "";
     const lineNumber = lineIndex + 1;
 
     // 1. JS / TS / JSX / TSX / Vue / Svelte
-    if (['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.vue', '.svelte'].includes(ext)) {
+    if (
+      [
+        ".js",
+        ".jsx",
+        ".ts",
+        ".tsx",
+        ".mjs",
+        ".cjs",
+        ".vue",
+        ".svelte",
+      ].includes(ext)
+    ) {
       let match: RegExpExecArray | null;
       IMPORT_REQUIRE_REGEX.lastIndex = 0;
       while ((match = IMPORT_REQUIRE_REGEX.exec(line)) !== null) {
         const rawRef = match[1] ?? match[2] ?? match[3] ?? match[4];
         if (rawRef && hasAssetExtension(rawRef)) {
-          const isDynamic = line.includes('import(');
+          const isDynamic = line.includes("import(");
           records.push({
             sourcePath,
-            kind: line.includes('require(') ? 'require' : isDynamic ? 'dynamic' : 'import',
+            kind: line.includes("require(")
+              ? "require"
+              : isDynamic
+                ? "dynamic"
+                : "import",
             line: lineNumber,
-            confidence: isDynamic ? 'uncertain' : 'confirmed',
+            confidence: isDynamic ? "uncertain" : "confirmed",
             rawRef,
           });
         }
@@ -75,17 +97,25 @@ export function extractReferencesFromSource(
     }
 
     // 2. CSS / SCSS / LESS
-    if (['.css', '.scss', '.sass', '.less', '.vue', '.svelte', '.html'].includes(ext)) {
+    if (
+      [".css", ".scss", ".sass", ".less", ".vue", ".svelte", ".html"].includes(
+        ext,
+      )
+    ) {
       let match: RegExpExecArray | null;
       CSS_URL_REGEX.lastIndex = 0;
       while ((match = CSS_URL_REGEX.exec(line)) !== null) {
         const rawRef = match[1]?.trim();
-        if (rawRef && !rawRef.startsWith('data:') && hasAssetExtension(rawRef)) {
+        if (
+          rawRef &&
+          !rawRef.startsWith("data:") &&
+          hasAssetExtension(rawRef)
+        ) {
           records.push({
             sourcePath,
-            kind: 'css-url',
+            kind: "css-url",
             line: lineNumber,
-            confidence: 'confirmed',
+            confidence: "confirmed",
             rawRef,
           });
         }
@@ -93,17 +123,23 @@ export function extractReferencesFromSource(
     }
 
     // 3. HTML / Templates
-    if (['.html', '.htm', '.php', '.vue', '.svelte', '.jsx', '.tsx'].includes(ext)) {
+    if (
+      [".html", ".htm", ".php", ".vue", ".svelte", ".jsx", ".tsx"].includes(ext)
+    ) {
       let match: RegExpExecArray | null;
       HTML_SRC_REGEX.lastIndex = 0;
       while ((match = HTML_SRC_REGEX.exec(line)) !== null) {
         const rawRef = match[1]?.trim();
-        if (rawRef && !rawRef.startsWith('data:') && hasAssetExtension(rawRef)) {
+        if (
+          rawRef &&
+          !rawRef.startsWith("data:") &&
+          hasAssetExtension(rawRef)
+        ) {
           records.push({
             sourcePath,
-            kind: 'html-src',
+            kind: "html-src",
             line: lineNumber,
-            confidence: 'confirmed',
+            confidence: "confirmed",
             rawRef,
           });
         }
@@ -111,7 +147,7 @@ export function extractReferencesFromSource(
     }
 
     // 4. JSON manifests
-    if (['.json', '.json5'].includes(ext)) {
+    if ([".json", ".json5"].includes(ext)) {
       let match: RegExpExecArray | null;
       JSON_STRING_REGEX.lastIndex = 0;
       while ((match = JSON_STRING_REGEX.exec(line)) !== null) {
@@ -119,9 +155,9 @@ export function extractReferencesFromSource(
         if (rawRef && hasAssetExtension(rawRef)) {
           records.push({
             sourcePath,
-            kind: 'json-string',
+            kind: "json-string",
             line: lineNumber,
-            confidence: 'probable',
+            confidence: "probable",
             rawRef,
           });
         }
@@ -138,7 +174,7 @@ export function extractReferencesFromSource(
 export function matchReferencesToAssets(
   references: ReferenceRecord[],
   assets: AssetRecord[],
-  root: string
+  root: string,
 ): void {
   // Build lookup maps for fast matching
   const byExactPath = new Map<string, AssetRecord>();
@@ -153,15 +189,19 @@ export function matchReferencesToAssets(
   }
 
   for (const ref of references) {
-    const rawClean = ref.rawRef.split('?')[0]?.split('#')[0] ?? '';
-    
+    const rawClean = ref.rawRef.split("?")[0]?.split("#")[0] ?? "";
+
     // Attempt 1: Resolve relative to source file
-    const resolvedFromSource = normalizePath(path.resolve(path.dirname(ref.sourcePath), rawClean));
+    const resolvedFromSource = normalizePath(
+      path.resolve(path.dirname(ref.sourcePath), rawClean),
+    );
     let matched = byExactPath.get(resolvedFromSource);
 
     // Attempt 2: Resolve relative to root (public folder references like /images/logo.png)
-    if (!matched && rawClean.startsWith('/')) {
-      const publicPath = normalizePath(path.resolve(root, 'public', rawClean.slice(1)));
+    if (!matched && rawClean.startsWith("/")) {
+      const publicPath = normalizePath(
+        path.resolve(root, "public", rawClean.slice(1)),
+      );
       matched = byExactPath.get(publicPath);
       if (!matched) {
         const directRoot = normalizePath(path.resolve(root, rawClean.slice(1)));
@@ -180,10 +220,13 @@ export function matchReferencesToAssets(
 
     if (matched) {
       matched.references.push(ref);
-      if (ref.confidence === 'confirmed') {
+      if (ref.confidence === "confirmed") {
         matched.isUnreferenced = false;
-      } else if (ref.confidence === 'uncertain' && matched.isUnreferenced === true) {
-        matched.isUnreferenced = 'uncertain';
+      } else if (
+        ref.confidence === "uncertain" &&
+        matched.isUnreferenced === true
+      ) {
+        matched.isUnreferenced = "uncertain";
       }
     }
   }
@@ -191,8 +234,10 @@ export function matchReferencesToAssets(
   // Update assets that have confirmed references
   for (const asset of assets) {
     if (asset.references.length > 0) {
-      const hasConfirmed = asset.references.some((r) => r.confidence === 'confirmed');
-      asset.isUnreferenced = hasConfirmed ? false : 'uncertain';
+      const hasConfirmed = asset.references.some(
+        (r) => r.confidence === "confirmed",
+      );
+      asset.isUnreferenced = hasConfirmed ? false : "uncertain";
     } else {
       asset.isUnreferenced = true;
     }
@@ -206,30 +251,39 @@ export function matchReferencesToAssets(
 export async function analyzeReferences(
   root: string,
   assets: AssetRecord[],
-  excludes: string[] = []
+  excludes: string[] = [],
 ): Promise<ReferenceAnalysisResult> {
   const createIgnore =
-    typeof ignoreFactory === 'function'
+    typeof ignoreFactory === "function"
       ? ignoreFactory
       : (ignoreFactory as unknown as { default: () => Ignore }).default;
   const ig = createIgnore();
 
   try {
-    const gitignore = await fs.promises.readFile(path.join(root, '.gitignore'), 'utf-8');
+    const gitignore = await fs.promises.readFile(
+      path.join(root, ".gitignore"),
+      "utf-8",
+    );
     ig.add(gitignore);
   } catch {
     // Ignore missing .gitignore
   }
   ig.add(excludes);
-  ig.add(['node_modules/**', '.git/**', 'dist/**', '.turbo/**', '.assetdiet/**']);
+  ig.add([
+    "node_modules/**",
+    ".git/**",
+    "dist/**",
+    ".turbo/**",
+    ".assetdiet/**",
+  ]);
 
   const sourceFiles = await glob(
-    '**/*.{js,jsx,ts,tsx,mjs,cjs,vue,svelte,css,scss,sass,less,html,htm,json}',
+    "**/*.{js,jsx,ts,tsx,mjs,cjs,vue,svelte,css,scss,sass,less,html,htm,json}",
     {
       cwd: root,
       absolute: true,
       onlyFiles: true,
-    }
+    },
   );
 
   const filteredFiles = sourceFiles.filter((file) => {
@@ -241,7 +295,7 @@ export async function analyzeReferences(
 
   for (const file of filteredFiles) {
     try {
-      const content = await fs.promises.readFile(file, 'utf-8');
+      const content = await fs.promises.readFile(file, "utf-8");
       const refs = extractReferencesFromSource(file, content);
       allReferences.push(...refs);
     } catch {
@@ -252,7 +306,9 @@ export async function analyzeReferences(
   matchReferencesToAssets(allReferences, assets, root);
 
   const unreferencedAssets = assets.filter((a) => a.isUnreferenced === true);
-  const uncertainAssets = assets.filter((a) => a.isUnreferenced === 'uncertain');
+  const uncertainAssets = assets.filter(
+    (a) => a.isUnreferenced === "uncertain",
+  );
   const referencedAssets = assets.filter((a) => a.isUnreferenced === false);
 
   return {
@@ -296,7 +352,7 @@ export async function migrateReferences(
     updateCss?: boolean;
     updateHtml?: boolean;
     excludes?: string[];
-  } = {}
+  } = {},
 ): Promise<ReferenceMigrationResult> {
   const dryRun = options.dryRun ?? false;
   const origBase = path.basename(originalFile);
@@ -306,27 +362,36 @@ export async function migrateReferences(
   const newRel = normalizePath(path.relative(root, newFile));
 
   const createIgnore =
-    typeof ignoreFactory === 'function'
+    typeof ignoreFactory === "function"
       ? ignoreFactory
       : (ignoreFactory as unknown as { default: () => Ignore }).default;
   const ig = createIgnore();
 
   try {
-    const gitignore = await fs.promises.readFile(path.join(root, '.gitignore'), 'utf-8');
+    const gitignore = await fs.promises.readFile(
+      path.join(root, ".gitignore"),
+      "utf-8",
+    );
     ig.add(gitignore);
   } catch {
     // Ignore missing .gitignore
   }
   ig.add(options.excludes ?? []);
-  ig.add(['node_modules/**', '.git/**', 'dist/**', '.turbo/**', '.assetdiet/**']);
+  ig.add([
+    "node_modules/**",
+    ".git/**",
+    "dist/**",
+    ".turbo/**",
+    ".assetdiet/**",
+  ]);
 
   const sourceFiles = await glob(
-    '**/*.{js,jsx,ts,tsx,mjs,cjs,vue,svelte,css,scss,sass,less,html,htm,json}',
+    "**/*.{js,jsx,ts,tsx,mjs,cjs,vue,svelte,css,scss,sass,less,html,htm,json}",
     {
       cwd: root,
       absolute: true,
       onlyFiles: true,
-    }
+    },
   );
 
   const filteredFiles = sourceFiles.filter((file) => {
@@ -339,15 +404,15 @@ export async function migrateReferences(
 
   for (const file of filteredFiles) {
     const ext = path.extname(file).toLowerCase();
-    const isCss = ['.css', '.scss', '.sass', '.less'].includes(ext);
-    const isHtml = ['.html', '.htm'].includes(ext);
+    const isCss = [".css", ".scss", ".sass", ".less"].includes(ext);
+    const isHtml = [".html", ".htm"].includes(ext);
 
     if (isCss && options.updateCss === false) continue;
     if (isHtml && options.updateHtml === false) continue;
 
     try {
-      const content = await fs.promises.readFile(file, 'utf-8');
-      const lines = content.split('\n');
+      const content = await fs.promises.readFile(file, "utf-8");
+      const lines = content.split("\n");
       let fileModified = false;
 
       for (let i = 0; i < lines.length; i++) {
@@ -379,7 +444,7 @@ export async function migrateReferences(
       if (fileModified) {
         filesModifiedCount++;
         if (!dryRun) {
-          await fs.promises.writeFile(file, lines.join('\n'), 'utf-8');
+          await fs.promises.writeFile(file, lines.join("\n"), "utf-8");
         }
       }
     } catch {
@@ -396,4 +461,3 @@ export async function migrateReferences(
     changes,
   };
 }
-

@@ -11,6 +11,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "start": "node dist/index.js",
     "clean": "rimraf dist .tsbuildinfo"
   },
@@ -33,6 +34,8 @@
   "devDependencies": {
     "@assetdiet/typescript-config": "workspace:*",
     "@types/node": "^22.0.0",
+    "sharp": "0.33.5",
+    "@gltf-transform/core": "^4.0.0",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8",
     "rimraf": "^5.0.10"

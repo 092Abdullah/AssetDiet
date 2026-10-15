@@ -4,12 +4,15 @@
  * respecting .gitignore rules and configured exclusions.
  */
 
-import path from 'node:path';
-import fs from 'node:fs';
-import crypto from 'node:crypto';
-import fg from 'fast-glob';
-const glob = typeof fg === 'function' ? fg : (fg as unknown as { default: typeof fg }).default;
-import ignoreFactory, { type Ignore } from 'ignore';
+import path from "node:path";
+import fs from "node:fs";
+import crypto from "node:crypto";
+import fg from "fast-glob";
+const glob =
+  typeof fg === "function"
+    ? fg
+    : (fg as unknown as { default: typeof fg }).default;
+import ignoreFactory, { type Ignore } from "ignore";
 import {
   type RunContext,
   type AssetRecord,
@@ -20,13 +23,13 @@ import {
   emitProgress,
   isCancelled,
   ErrorCodes,
-} from '@assetdiet/core';
+} from "@assetdiet/core";
 
-import { extractImageMetadata } from './extractors/image.js';
-import { extractSvgMetadata } from './extractors/svg.js';
-import { extractVideoMetadata } from './extractors/video.js';
-import { extract3DMetadata } from './extractors/model3d.js';
-import { extractFontMetadata } from './extractors/font.js';
+import { extractImageMetadata } from "./extractors/image.js";
+import { extractSvgMetadata } from "./extractors/svg.js";
+import { extractVideoMetadata } from "./extractors/video.js";
+import { extract3DMetadata } from "./extractors/model3d.js";
+import { extractFontMetadata } from "./extractors/font.js";
 
 export interface ScanResult {
   assets: AssetRecord[];
@@ -39,17 +42,20 @@ export interface ScanResult {
 /**
  * Build an ignore filter from .gitignore + configured exclusions.
  */
-async function buildIgnoreFilter(root: string, excludes: string[]): Promise<Ignore> {
+async function buildIgnoreFilter(
+  root: string,
+  excludes: string[],
+): Promise<Ignore> {
   const createIgnore =
-    typeof ignoreFactory === 'function'
+    typeof ignoreFactory === "function"
       ? ignoreFactory
       : (ignoreFactory as unknown as { default: () => Ignore }).default;
   const ig = createIgnore();
 
   // Load .gitignore if present
-  const gitignorePath = path.join(root, '.gitignore');
+  const gitignorePath = path.join(root, ".gitignore");
   try {
-    const gitignoreContent = await fs.promises.readFile(gitignorePath, 'utf-8');
+    const gitignoreContent = await fs.promises.readFile(gitignorePath, "utf-8");
     ig.add(gitignoreContent);
   } catch {
     // No .gitignore — that's fine
@@ -65,13 +71,13 @@ async function buildIgnoreFilter(root: string, excludes: string[]): Promise<Igno
  * Compute SHA-256 hash of a file's content.
  */
 async function hashFile(filePath: string): Promise<string> {
-  const hash = crypto.createHash('sha256');
+  const hash = crypto.createHash("sha256");
   const stream = fs.createReadStream(filePath);
 
   return new Promise<string>((resolve, reject) => {
-    stream.on('data', (chunk) => hash.update(chunk));
-    stream.on('end', () => resolve(hash.digest('hex')));
-    stream.on('error', reject);
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("end", () => resolve(hash.digest("hex")));
+    stream.on("error", reject);
   });
 }
 
@@ -81,24 +87,24 @@ async function hashFile(filePath: string): Promise<string> {
  */
 async function extractMetadata(
   filePath: string,
-  ext: string
+  ext: string,
 ): Promise<AssetMetadata | null> {
   const type = getAssetType(ext);
 
   try {
     switch (type) {
-      case 'image':
+      case "image":
         return await extractImageMetadata(filePath);
-      case 'svg':
+      case "svg":
         return await extractSvgMetadata(filePath);
-      case 'video':
+      case "video":
         return await extractVideoMetadata(filePath);
-      case '3d':
+      case "3d":
         return await extract3DMetadata(filePath);
-      case 'font':
+      case "font":
         return await extractFontMetadata(filePath);
       default:
-        return { type: 'unknown', data: {} };
+        return { type: "unknown", data: {} };
     }
   } catch {
     return null;
@@ -110,7 +116,7 @@ async function extractMetadata(
  */
 export async function scanRepository(ctx: RunContext): Promise<ScanResult> {
   const { root, config } = ctx;
-  const errors: ScanResult['errors'] = [];
+  const errors: ScanResult["errors"] = [];
   const assets: AssetRecord[] = [];
   const startTime = Date.now();
 
@@ -122,7 +128,7 @@ export async function scanRepository(ctx: RunContext): Promise<ScanResult> {
   // Build glob pattern for all supported extensions
   const extPattern = SUPPORTED_EXTENSIONS.map((e) => `**/*${e}`);
 
-  emitProgress(ctx, 'Discovering asset files...');
+  emitProgress(ctx, "Discovering asset files...");
 
   // Discover files
   const files = await glob(extPattern, {
@@ -143,7 +149,10 @@ export async function scanRepository(ctx: RunContext): Promise<ScanResult> {
     return true;
   });
 
-  emitProgress(ctx, `Found ${filteredFiles.length} asset files. Extracting metadata...`);
+  emitProgress(
+    ctx,
+    `Found ${filteredFiles.length} asset files. Extracting metadata...`,
+  );
 
   let processed = 0;
   for (const filePath of filteredFiles) {
@@ -167,7 +176,7 @@ export async function scanRepository(ctx: RunContext): Promise<ScanResult> {
       const ext = path.extname(filePath).toLowerCase();
       const hash = await hashFile(filePath);
       const metadata = await extractMetadata(filePath, ext);
-      const relativePath = path.relative(root, filePath).replace(/\\/g, '/');
+      const relativePath = path.relative(root, filePath).replace(/\\/g, "/");
 
       const record: AssetRecord = {
         path: filePath,
@@ -178,7 +187,7 @@ export async function scanRepository(ctx: RunContext): Promise<ScanResult> {
         metadata,
         references: [], // Populated by reference-analyzer
         isDuplicate: false, // Populated by asset-graph
-        isUnreferenced: 'uncertain', // Populated by reference-analyzer
+        isUnreferenced: "uncertain", // Populated by reference-analyzer
         extension: ext,
         lastModified: stat.mtime,
       };
@@ -187,7 +196,10 @@ export async function scanRepository(ctx: RunContext): Promise<ScanResult> {
       processed++;
 
       if (processed % 50 === 0) {
-        emitProgress(ctx, `Processed ${processed}/${filteredFiles.length} files...`);
+        emitProgress(
+          ctx,
+          `Processed ${processed}/${filteredFiles.length} files...`,
+        );
       }
     } catch (err) {
       errors.push({
@@ -198,7 +210,10 @@ export async function scanRepository(ctx: RunContext): Promise<ScanResult> {
     }
   }
 
-  emitProgress(ctx, `Scan complete: ${assets.length} assets found in ${Date.now() - startTime}ms`);
+  emitProgress(
+    ctx,
+    `Scan complete: ${assets.length} assets found in ${Date.now() - startTime}ms`,
+  );
 
   return {
     assets,

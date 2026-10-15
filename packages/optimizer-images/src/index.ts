@@ -8,14 +8,14 @@
  * - 'safe' policy uses lossless/high-fidelity compression and preserves format by default.
  */
 
-import sharp from 'sharp';
-import fs from 'node:fs';
-import path from 'node:path';
-import type { OptimizationPolicy } from '@assetdiet/core';
+import sharp from "sharp";
+import fs from "node:fs";
+import path from "node:path";
+import type { OptimizationPolicy } from "@assetdiet/core";
 
 export interface ImageOptimizeOptions {
   quality?: number;
-  format?: 'webp' | 'avif' | 'original';
+  format?: "webp" | "avif" | "original";
   maxWidth?: number;
   maxHeight?: number;
   stripMetadata?: boolean;
@@ -43,7 +43,7 @@ export async function optimizeImage(
   src: string,
   dest: string,
   options: ImageOptimizeOptions = {},
-  policy: OptimizationPolicy = 'safe'
+  policy: OptimizationPolicy = "safe",
 ): Promise<ImageOptimizeResult> {
   const stat = await fs.promises.stat(src);
   const originalSizeBytes = stat.size;
@@ -61,7 +61,7 @@ export async function optimizeImage(
     pipeline = pipeline.resize({
       width: options.maxWidth,
       height: options.maxHeight,
-      fit: 'inside',
+      fit: "inside",
       withoutEnlargement: true,
     });
   }
@@ -70,40 +70,43 @@ export async function optimizeImage(
   let quality = options.quality;
   if (!quality) {
     switch (policy) {
-      case 'aggressive':
+      case "aggressive":
         quality = 70;
         break;
-      case 'balanced':
+      case "balanced":
         quality = 80;
         break;
-      case 'safe':
-      case 'audit':
+      case "safe":
+      case "audit":
       default:
         quality = 85;
         break;
     }
   }
 
-  const targetFormat = options.format ?? 'original';
-  const origFormat = metadata.format?.toLowerCase() ?? 'jpeg';
+  const targetFormat = options.format ?? "original";
+  const origFormat = metadata.format?.toLowerCase() ?? "jpeg";
 
-  if (targetFormat === 'webp') {
+  if (targetFormat === "webp") {
     pipeline = pipeline.webp({ quality, effort: 4 });
-  } else if (targetFormat === 'avif') {
+  } else if (targetFormat === "avif") {
     pipeline = pipeline.avif({ quality, effort: 4 });
   } else {
     // Preserve original format with lossless or conservative settings
-    if (origFormat === 'png') {
-      const compressionLevel = policy === 'aggressive' ? 9 : 6;
+    if (origFormat === "png") {
+      const compressionLevel = policy === "aggressive" ? 9 : 6;
       // Palette quantization is lossy: only allowed in aggressive mode
-      pipeline = pipeline.png({ compressionLevel, palette: policy === 'aggressive' });
-    } else if (origFormat === 'jpeg' || origFormat === 'jpg') {
+      pipeline = pipeline.png({
+        compressionLevel,
+        palette: policy === "aggressive",
+      });
+    } else if (origFormat === "jpeg" || origFormat === "jpg") {
       pipeline = pipeline.jpeg({ quality, mozjpeg: true });
-    } else if (origFormat === 'webp') {
+    } else if (origFormat === "webp") {
       pipeline = pipeline.webp({ quality });
-    } else if (origFormat === 'avif') {
+    } else if (origFormat === "avif") {
       pipeline = pipeline.avif({ quality });
-    } else if (origFormat === 'gif') {
+    } else if (origFormat === "gif") {
       pipeline = pipeline.gif({});
     }
   }
@@ -120,7 +123,7 @@ export async function optimizeImage(
   const finalHeight = outMeta.height ?? height;
 
   // 1. Audit Policy Guard: Never modify files
-  if (policy === 'audit') {
+  if (policy === "audit") {
     const saved = Math.max(0, originalSizeBytes - optimizedSizeBytes);
     return {
       sourcePath: src,
@@ -128,19 +131,22 @@ export async function optimizeImage(
       originalSizeBytes,
       optimizedSizeBytes,
       savedBytes: saved,
-      savedPercentage: originalSizeBytes > 0 ? Number(((saved / originalSizeBytes) * 100).toFixed(2)) : 0,
-      format: targetFormat === 'original' ? origFormat : targetFormat,
+      savedPercentage:
+        originalSizeBytes > 0
+          ? Number(((saved / originalSizeBytes) * 100).toFixed(2))
+          : 0,
+      format: targetFormat === "original" ? origFormat : targetFormat,
       width: finalWidth,
       height: finalHeight,
       skipped: true,
-      reason: 'Audit policy: file modification disabled',
+      reason: "Audit policy: file modification disabled",
     };
   }
 
   // 2. Safety guard: if output is larger or equal and not explicitly resized, keep original!
   if (
     optimizedSizeBytes >= originalSizeBytes &&
-    targetFormat === 'original' &&
+    targetFormat === "original" &&
     !options.maxWidth &&
     !options.maxHeight
   ) {
@@ -159,7 +165,8 @@ export async function optimizeImage(
       width,
       height,
       skipped: true,
-      reason: 'Optimized file was larger or equal to original; original preserved',
+      reason:
+        "Optimized file was larger or equal to original; original preserved",
     };
   }
 
@@ -168,7 +175,9 @@ export async function optimizeImage(
   await fs.promises.writeFile(dest, buffer);
 
   const savedBytes = Math.max(0, originalSizeBytes - optimizedSizeBytes);
-  const savedPercentage = Number(((savedBytes / originalSizeBytes) * 100).toFixed(2));
+  const savedPercentage = Number(
+    ((savedBytes / originalSizeBytes) * 100).toFixed(2),
+  );
 
   return {
     sourcePath: src,
@@ -177,7 +186,7 @@ export async function optimizeImage(
     optimizedSizeBytes,
     savedBytes,
     savedPercentage,
-    format: targetFormat === 'original' ? origFormat : targetFormat,
+    format: targetFormat === "original" ? origFormat : targetFormat,
     width: finalWidth,
     height: finalHeight,
     skipped: false,
