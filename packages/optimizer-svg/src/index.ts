@@ -1,6 +1,11 @@
 /**
  * AssetDiet SVG Optimizer — SVGO Adapter
  * Provides conservative, balanced, and aggressive optimization profiles.
+ *
+ * Guarantees:
+ * - 'audit' policy never modifies files.
+ * - 'safe' policy strictly preserves viewBox, IDs, scripts, and accessibility tags.
+ * - Output is validated to ensure well-formed XML and smaller output size.
  */
 
 import { optimize, type Config as SvgoConfig } from 'svgo';
@@ -67,7 +72,22 @@ export async function optimizeSvg(
     throw new Error(`SVG optimization resulted in malformed SVG content for ${src}`);
   }
 
-  // Safety: if optimized is larger, preserve original
+  // 1. Audit Policy Guard: Never modify files
+  if (policy === 'audit') {
+    const saved = Math.max(0, originalSizeBytes - optimizedSizeBytes);
+    return {
+      sourcePath: src,
+      outputPath: dest,
+      originalSizeBytes,
+      optimizedSizeBytes,
+      savedBytes: saved,
+      savedPercentage: originalSizeBytes > 0 ? Number(((saved / originalSizeBytes) * 100).toFixed(2)) : 0,
+      skipped: true,
+      reason: 'Audit policy: file modification disabled',
+    };
+  }
+
+  // 2. Safety: if optimized is larger or equal, preserve original
   if (optimizedSizeBytes >= originalSizeBytes) {
     if (src !== dest) {
       await fs.promises.mkdir(path.dirname(dest), { recursive: true });

@@ -1,6 +1,7 @@
 /**
  * AssetDiet Transactions — Backup, Journal, and Rollback
- * Ensures all modifications can be fully and cleanly undone.
+ * Ensures all modifications can be fully and cleanly undone under success,
+ * failure, and interrupted runs.
  */
 
 import fs from 'node:fs';
@@ -15,18 +16,33 @@ export interface TransactionOp {
   diff?: string | undefined;
 }
 
+export type TransactionStatus = 'pending' | 'committed' | 'failed' | 'rolled_back';
+
 export interface Transaction {
   id: string;
   runId: string;
   root: string;
   createdAt: string;
+  updatedAt: string;
   operations: TransactionOp[];
-  status: 'pending' | 'committed' | 'rolled_back';
+  status: TransactionStatus;
+  error?: string | undefined;
+}
+
+function getJournalPath(root: string, runId: string): string {
+  return path.join(root, '.assetdiet', 'runs', `${runId}.json`);
+}
+
+async function persistJournal(tx: Transaction): Promise<void> {
+  tx.updatedAt = new Date().toISOString();
+  const journalPath = getJournalPath(tx.root, tx.runId);
+  await fs.promises.mkdir(path.dirname(journalPath), { recursive: true });
+  await fs.promises.writeFile(journalPath, JSON.stringify(tx, null, 2), 'utf-8');
 }
 
 /**
  * Begin a new optimization transaction.
- * Creates the .assetdiet storage folders if they do not exist.
+ * Immediately persists the journal file so interrupted runs remain recoverable.
  */
 export async function beginTransaction(root: string, runId: string): Promise<Transaction> {
   const backupDir = safeResolve(root, path.join('.assetdiet', 'backups', runId));
@@ -35,18 +51,24 @@ export async function beginTransaction(root: string, runId: string): Promise<Tra
   await fs.promises.mkdir(backupDir, { recursive: true });
   await fs.promises.mkdir(runsDir, { recursive: true });
 
-  return {
+  const now = new Date().toISOString();
+  const tx: Transaction = {
     id: runId,
     runId,
     root,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
     operations: [],
     status: 'pending',
   };
+
+  await persistJournal(tx);
+  return tx;
 }
 
 /**
- * Stage a file modification: copy the original to backup before touching it.
+ * Stage a file modification: copy the original to backup before touching it,
+ * and immediately update the journal on disk so crashed/interrupted runs can be restored.
  */
 export async function stageFileModification(
   tx: Transaction,
@@ -61,38 +83,53 @@ export async function stageFileModification(
 
   await fs.promises.mkdir(path.dirname(backupPath), { recursive: true });
 
-  // Only copy if file currently exists on disk
-  if (fs.existsSync(originalPath)) {
-    await fs.promises.copyFile(originalPath, backupPath);
-  }
+  // Copy original file if it exists and hasn't already been backed up in this transaction
+  const existingOp = tx.operations.find((op) => op.originalPath === normalizePath(originalPath));
+  if (!existingOp) {
+    if (fs.existsSync(originalPath)) {
+      await fs.promises.copyFile(originalPath, backupPath);
+    }
 
-  tx.operations.push({
-    type: 'write',
-    originalPath: normalizePath(originalPath),
-    backupPath: normalizePath(backupPath),
-    newPath: newPath ? normalizePath(newPath) : undefined,
-  });
+    tx.operations.push({
+      type: 'write',
+      originalPath: normalizePath(originalPath),
+      backupPath: normalizePath(backupPath),
+      newPath: newPath ? normalizePath(newPath) : undefined,
+    });
+
+    // Update journal on disk immediately after staging
+    await persistJournal(tx);
+  }
 
   return backupPath;
 }
 
 /**
- * Commit the transaction by persisting the journal record to disk.
+ * Record a transaction failure and persist the error state to disk.
+ */
+export async function recordTransactionFailure(tx: Transaction, error: Error | string): Promise<void> {
+  tx.status = 'failed';
+  tx.error = typeof error === 'string' ? error : error.message;
+  await persistJournal(tx);
+}
+
+/**
+ * Commit the transaction by persisting the journal record with committed status.
  */
 export async function commitTransaction(tx: Transaction): Promise<void> {
   tx.status = 'committed';
-  const journalPath = path.join(tx.root, '.assetdiet', 'runs', `${tx.runId}.json`);
-  await fs.promises.writeFile(journalPath, JSON.stringify(tx, null, 2), 'utf-8');
+  await persistJournal(tx);
 }
 
 /**
  * Rollback all changes made in a specific optimization run.
+ * Supports committed, pending (interrupted), and failed runs.
  */
 export async function rollbackTransaction(
   root: string,
   runId: string
-): Promise<{ restoredCount: number; deletedCount: number }> {
-  const journalPath = path.join(root, '.assetdiet', 'runs', `${runId}.json`);
+): Promise<{ restoredCount: number; deletedCount: number; status: TransactionStatus }> {
+  const journalPath = getJournalPath(root, runId);
 
   if (!fs.existsSync(journalPath)) {
     throw new Error(`No transaction journal found for runId: ${runId}`);
@@ -118,7 +155,7 @@ export async function rollbackTransaction(
   }
 
   tx.status = 'rolled_back';
-  await fs.promises.writeFile(journalPath, JSON.stringify(tx, null, 2), 'utf-8');
+  await persistJournal(tx);
 
-  return { restoredCount, deletedCount };
+  return { restoredCount, deletedCount, status: tx.status };
 }

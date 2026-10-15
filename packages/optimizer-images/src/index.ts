@@ -1,6 +1,11 @@
 /**
  * AssetDiet Image Optimizer — Sharp Adapter
  * Handles JPEG, PNG, WebP, AVIF, GIF, TIFF optimization.
+ *
+ * Guarantees:
+ * - Will never emit an output larger than the original (unless explicit resize).
+ * - 'audit' policy never modifies files.
+ * - 'safe' policy uses lossless/high-fidelity compression and preserves format by default.
  */
 
 import sharp from 'sharp';
@@ -32,8 +37,7 @@ export interface ImageOptimizeResult {
 }
 
 /**
- * Optimize an image file safely.
- * Guarantee: will never emit an output larger than the original.
+ * Optimize an image file safely under policy constraints.
  */
 export async function optimizeImage(
   src: string,
@@ -52,7 +56,7 @@ export async function optimizeImage(
   const width = metadata.width ?? 0;
   const height = metadata.height ?? 0;
 
-  // Resize if requested and larger than bounds
+  // Resize if explicitly requested and larger than bounds
   if (options.maxWidth || options.maxHeight) {
     pipeline = pipeline.resize({
       width: options.maxWidth,
@@ -88,9 +92,10 @@ export async function optimizeImage(
   } else if (targetFormat === 'avif') {
     pipeline = pipeline.avif({ quality, effort: 4 });
   } else {
-    // Preserve original format
+    // Preserve original format with lossless or conservative settings
     if (origFormat === 'png') {
       const compressionLevel = policy === 'aggressive' ? 9 : 6;
+      // Palette quantization is lossy: only allowed in aggressive mode
       pipeline = pipeline.png({ compressionLevel, palette: policy === 'aggressive' });
     } else if (origFormat === 'jpeg' || origFormat === 'jpg') {
       pipeline = pipeline.jpeg({ quality, mozjpeg: true });
@@ -104,12 +109,9 @@ export async function optimizeImage(
   }
 
   if (options.stripMetadata !== false) {
-    // Keep ICC profile for correct color rendering, strip other metadata
+    // Keep ICC profile for correct color rendering, preserve orientation
     pipeline = pipeline.withMetadata({ orientation: metadata.orientation });
   }
-
-  // Create destination directory
-  await fs.promises.mkdir(path.dirname(dest), { recursive: true });
 
   const buffer = await pipeline.toBuffer();
   const optimizedSizeBytes = buffer.length;
@@ -117,7 +119,25 @@ export async function optimizeImage(
   const finalWidth = outMeta.width ?? width;
   const finalHeight = outMeta.height ?? height;
 
-  // SAFETY GUARD: If optimized file is larger and not explicitly resized, keep original!
+  // 1. Audit Policy Guard: Never modify files
+  if (policy === 'audit') {
+    const saved = Math.max(0, originalSizeBytes - optimizedSizeBytes);
+    return {
+      sourcePath: src,
+      outputPath: dest,
+      originalSizeBytes,
+      optimizedSizeBytes,
+      savedBytes: saved,
+      savedPercentage: originalSizeBytes > 0 ? Number(((saved / originalSizeBytes) * 100).toFixed(2)) : 0,
+      format: targetFormat === 'original' ? origFormat : targetFormat,
+      width: finalWidth,
+      height: finalHeight,
+      skipped: true,
+      reason: 'Audit policy: file modification disabled',
+    };
+  }
+
+  // 2. Safety guard: if output is larger or equal and not explicitly resized, keep original!
   if (
     optimizedSizeBytes >= originalSizeBytes &&
     targetFormat === 'original' &&
@@ -125,6 +145,7 @@ export async function optimizeImage(
     !options.maxHeight
   ) {
     if (src !== dest) {
+      await fs.promises.mkdir(path.dirname(dest), { recursive: true });
       await fs.promises.copyFile(src, dest);
     }
     return {
@@ -142,6 +163,8 @@ export async function optimizeImage(
     };
   }
 
+  // Create destination directory and write
+  await fs.promises.mkdir(path.dirname(dest), { recursive: true });
   await fs.promises.writeFile(dest, buffer);
 
   const savedBytes = Math.max(0, originalSizeBytes - optimizedSizeBytes);

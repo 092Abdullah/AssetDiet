@@ -13,7 +13,14 @@ import { buildAssetGraph } from '@assetdiet/asset-graph';
 import { createOptimizationPlan } from '@assetdiet/planner';
 import { optimizeImage } from '@assetdiet/optimizer-images';
 import { optimizeSvg } from '@assetdiet/optimizer-svg';
-import { rollbackTransaction, beginTransaction, stageFileModification, commitTransaction } from '@assetdiet/transactions';
+import { optimizeVideo } from '@assetdiet/optimizer-video';
+import { optimize3D } from '@assetdiet/optimizer-3d';
+import {
+  rollbackTransaction,
+  beginTransaction,
+  stageFileModification,
+  commitTransaction,
+} from '@assetdiet/transactions';
 import { generateMarkdownReport, type ReportData } from '@assetdiet/reporting';
 
 const program = new Command();
@@ -39,7 +46,9 @@ program
       console.log(`\n📦 Scanned ${result.rootPath}`);
       console.log(`Total assets found: ${result.assets.length}\n`);
       for (const asset of result.assets.slice(0, 30)) {
-        console.log(`  [${asset.type.toUpperCase()}] ${asset.relativePath} (${(asset.sizeBytes / 1024).toFixed(1)} KB)`);
+        console.log(
+          `  [${asset.type.toUpperCase()}] ${asset.relativePath} (${(asset.sizeBytes / 1024).toFixed(1)} KB)`
+        );
       }
       if (result.assets.length > 30) {
         console.log(`  ...and ${result.assets.length - 30} more`);
@@ -50,15 +59,15 @@ program
 // audit
 program
   .command('audit [targetPath]')
-  .description('Audit repository assets for optimization opportunities')
+  .description('Audit repository assets for optimization opportunities (read-only)')
   .option('-p, --policy <policy>', 'Policy: audit, safe, balanced, aggressive', 'safe')
   .option('--json', 'Output results as JSON')
   .action(async (targetPath = '.', options) => {
     const root = path.resolve(targetPath);
-    const ctx = createContext({ root, policy: options.policy as OptimizationPolicy });
+    const ctx = createContext({ root, policy: options.policy as OptimizationPolicy, dryRun: true });
     const scan = await scanRepository(ctx);
     const graph = buildAssetGraph(scan);
-    const plan = createOptimizationPlan(graph, options.policy as OptimizationPolicy);
+    const plan = createOptimizationPlan(graph, options.policy as OptimizationPolicy, true);
 
     if (options.json) {
       console.log(JSON.stringify({ plan, duplicates: graph.duplicateGroups }, null, 2));
@@ -84,20 +93,31 @@ program
   .option('--dry-run', 'Simulate changes without writing files', false)
   .action(async (targetPath = '.', options) => {
     const root = path.resolve(targetPath);
-    const ctx = createContext({ root, policy: options.policy as OptimizationPolicy, dryRun: options.dryRun });
+    const isAudit = options.policy === 'audit';
+    const isDry = options.dryRun || isAudit;
+
+    const ctx = createContext({
+      root,
+      policy: options.policy as OptimizationPolicy,
+      dryRun: isDry,
+    });
     const scan = await scanRepository(ctx);
     const graph = buildAssetGraph(scan);
-    const plan = createOptimizationPlan(graph, options.policy as OptimizationPolicy, options.dryRun);
+    const plan = createOptimizationPlan(graph, options.policy as OptimizationPolicy, isDry);
 
-    console.log(`\n⚡ Running AssetDiet Optimization on ${root} (${options.dryRun ? 'DRY RUN' : 'APPLYING'})`);
+    console.log(
+      `\n⚡ Running AssetDiet Optimization on ${root} (${isDry ? 'DRY RUN' : 'APPLYING'})`
+    );
     console.log(`Tasks to execute: ${plan.totalTasks}\n`);
 
-    const tx = options.dryRun ? null : await beginTransaction(root, ctx.runId);
+    const tx = isDry ? null : await beginTransaction(root, ctx.runId);
     let savedBytesTotal = 0;
 
     for (const task of plan.tasks) {
-      if (options.dryRun) {
-        console.log(`  [SIMULATED] ${path.relative(root, task.assetPath)}: -${(task.estimatedSavingsBytes / 1024).toFixed(1)} KB`);
+      if (isDry) {
+        console.log(
+          `  [SIMULATED] ${path.relative(root, task.assetPath)}: -${(task.estimatedSavingsBytes / 1024).toFixed(1)} KB`
+        );
         savedBytesTotal += task.estimatedSavingsBytes;
         continue;
       }
@@ -106,20 +126,50 @@ program
         await stageFileModification(tx, task.assetPath);
       }
 
-      if (task.assetType === 'image') {
-        const res = await optimizeImage(task.assetPath, task.assetPath, {}, options.policy as OptimizationPolicy);
-        if (!res.skipped) {
-          console.log(`  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${(res.originalSizeBytes / 1024).toFixed(1)}KB -> ${(res.optimizedSizeBytes / 1024).toFixed(1)}KB (-${res.savedPercentage}%)`);
-          savedBytesTotal += res.savedBytes;
-        } else {
-          console.log(`  [SKIPPED] ${path.relative(root, task.assetPath)}: already optimal`);
+      try {
+        if (task.assetType === 'image') {
+          const res = await optimizeImage(task.assetPath, task.assetPath, {}, options.policy as OptimizationPolicy);
+          if (!res.skipped) {
+            console.log(
+              `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${(res.originalSizeBytes / 1024).toFixed(1)}KB -> ${(res.optimizedSizeBytes / 1024).toFixed(1)}KB (-${res.savedPercentage}%)`
+            );
+            savedBytesTotal += res.savedBytes;
+          } else {
+            console.log(`  [SKIPPED] ${path.relative(root, task.assetPath)}: ${res.reason ?? 'already optimal'}`);
+          }
+        } else if (task.assetType === 'svg') {
+          const res = await optimizeSvg(task.assetPath, task.assetPath, {}, options.policy as OptimizationPolicy);
+          if (!res.skipped) {
+            console.log(
+              `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${(res.originalSizeBytes / 1024).toFixed(1)}KB -> ${(res.optimizedSizeBytes / 1024).toFixed(1)}KB (-${res.savedPercentage}%)`
+            );
+            savedBytesTotal += res.savedBytes;
+          } else {
+            console.log(`  [SKIPPED] ${path.relative(root, task.assetPath)}: ${res.reason ?? 'already optimal'}`);
+          }
+        } else if (task.assetType === 'video') {
+          const res = await optimizeVideo(task.assetPath, task.assetPath, {}, options.policy as OptimizationPolicy);
+          if (!res.skipped) {
+            console.log(
+              `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${(res.originalSizeBytes / 1024).toFixed(1)}KB -> ${(res.optimizedSizeBytes / 1024).toFixed(1)}KB (-${res.savedPercentage}%)`
+            );
+            savedBytesTotal += res.savedBytes;
+          } else {
+            console.log(`  [SKIPPED] ${path.relative(root, task.assetPath)}: ${res.reason ?? 'already optimal'}`);
+          }
+        } else if (task.assetType === '3d') {
+          const res = await optimize3D(task.assetPath, task.assetPath, {}, options.policy as OptimizationPolicy);
+          if (!res.skipped) {
+            console.log(
+              `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${(res.originalSizeBytes / 1024).toFixed(1)}KB -> ${(res.optimizedSizeBytes / 1024).toFixed(1)}KB (-${res.savedPercentage}%)`
+            );
+            savedBytesTotal += res.savedBytes;
+          } else {
+            console.log(`  [SKIPPED] ${path.relative(root, task.assetPath)}: ${res.reason ?? 'already optimal'}`);
+          }
         }
-      } else if (task.assetType === 'svg') {
-        const res = await optimizeSvg(task.assetPath, task.assetPath, {}, options.policy as OptimizationPolicy);
-        if (!res.skipped) {
-          console.log(`  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${(res.originalSizeBytes / 1024).toFixed(1)}KB -> ${(res.optimizedSizeBytes / 1024).toFixed(1)}KB (-${res.savedPercentage}%)`);
-          savedBytesTotal += res.savedBytes;
-        }
+      } catch (err) {
+        console.error(`  [ERROR] ${path.relative(root, task.assetPath)}: ${(err as Error).message}`);
       }
     }
 
@@ -129,7 +179,9 @@ program
       console.log(`Total saved: ${(savedBytesTotal / 1024).toFixed(1)} KB`);
       console.log(`To rollback: assetdiet restore --run ${ctx.runId}`);
     } else {
-      console.log(`\n✅ Dry run finished. Estimated total savings: ${(savedBytesTotal / 1024).toFixed(1)} KB`);
+      console.log(
+        `\n✅ Dry run finished. Estimated total savings: ${(savedBytesTotal / 1024).toFixed(1)} KB`
+      );
     }
   });
 
@@ -143,7 +195,9 @@ program
     const root = path.resolve(options.targetPath);
     console.log(`\n🔄 Restoring run ${options.run} in ${root}...`);
     const res = await rollbackTransaction(root, options.run);
-    console.log(`✅ Rollback successful: restored ${res.restoredCount} files, deleted ${res.deletedCount} files.`);
+    console.log(
+      `✅ Rollback successful: restored ${res.restoredCount} files, deleted ${res.deletedCount} files.`
+    );
   });
 
 program.parse(process.argv);

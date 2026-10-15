@@ -46,4 +46,25 @@ describe('optimize3D', () => {
     const doc = await io.read(destGlb);
     expect(doc.getRoot().listMeshes().length).toBeGreaterThan(0);
   });
+
+  it('respects audit policy without modifying files', async () => {
+    const originalStat = await fs.promises.stat(sampleGlb);
+    const result = await optimize3D(sampleGlb, sampleGlb, {}, 'audit');
+
+    expect(result.skipped).toBe(true);
+    expect(result.reason).toContain('Audit policy');
+    const afterStat = await fs.promises.stat(sampleGlb);
+    expect(afterStat.size).toBe(originalStat.size);
+  });
+
+  it('handles in-place optimization safely with temp file replacement', async () => {
+    const inPlaceGlb = path.join(tempDir, 'inplace.glb');
+    await fs.promises.copyFile(sampleGlb, inPlaceGlb);
+
+    const result = await optimize3D(inPlaceGlb, inPlaceGlb, {}, 'balanced');
+    expect(fs.existsSync(inPlaceGlb)).toBe(true);
+    const io = new NodeIO();
+    const doc = await io.read(inPlaceGlb);
+    expect(doc.getRoot().listMeshes().length).toBeGreaterThan(0);
+  });
 });

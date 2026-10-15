@@ -7,27 +7,35 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import path from 'node:path';
 import fs from 'node:fs';
-
+import { spawn } from 'node:child_process';
+import sharp from 'sharp';
 import {
   createContext,
   safeResolve,
+  normalizePath,
   getAssetType,
   type AssetRecord,
 } from '@assetdiet/core';
-import { scanRepository } from '@assetdiet/scanner';
+import { scanRepository, extract3DMetadata } from '@assetdiet/scanner';
 import { buildAssetGraph } from '@assetdiet/asset-graph';
 import { createOptimizationPlan } from '@assetdiet/planner';
 import { optimizeImage } from '@assetdiet/optimizer-images';
 import { optimizeSvg } from '@assetdiet/optimizer-svg';
-import { optimizeVideo } from '@assetdiet/optimizer-video';
+import { optimizeVideo, detectFFmpeg } from '@assetdiet/optimizer-video';
 import { optimize3D } from '@assetdiet/optimizer-3d';
 import { inspectFont, detectDuplicateFonts } from '@assetdiet/optimizer-fonts';
-import { analyzeReferences } from '@assetdiet/reference-analyzer';
-import { validateImage, validateSvg } from '@assetdiet/validation';
+import { analyzeReferences, migrateReferences } from '@assetdiet/reference-analyzer';
+import {
+  validateImage,
+  validateSvg,
+  validateVideo,
+  validate3D,
+} from '@assetdiet/validation';
 import {
   beginTransaction,
   stageFileModification,
   commitTransaction,
+  recordTransactionFailure,
   rollbackTransaction,
 } from '@assetdiet/transactions';
 import {
@@ -104,25 +112,25 @@ server.registerTool(
 server.registerTool(
   'assetdiet_audit',
   {
-    description: 'Find asset optimization opportunities and rank them by potential savings',
+    description: 'Find asset optimization opportunities and rank them by potential savings (read-only)',
     inputSchema: AuditInputSchema,
   },
   async ({ root, policy, types, limit }) => {
-    const ctx = createContext({ root, policy });
+    const ctx = createContext({ root, policy: policy ?? 'safe', dryRun: true });
     const scan = await scanRepository(ctx);
     let assets = scan.assets;
     if (types && types.length > 0) {
       assets = assets.filter((a) => (types as string[]).includes(a.type));
     }
     const graph = buildAssetGraph({ ...scan, assets });
-    const plan = createOptimizationPlan(graph, policy);
+    const plan = createOptimizationPlan(graph, policy ?? 'safe', true);
 
     return jsonResponse({
       summary: {
         totalAssets: assets.length,
         opportunitiesFound: plan.totalTasks,
         estimatedTotalSavingsBytes: plan.estimatedTotalSavingsBytes,
-        policy,
+        policy: policy ?? 'safe',
       },
       opportunities: plan.tasks.slice(0, limit ?? 50),
       duplicates: graph.duplicateGroups,
@@ -138,14 +146,14 @@ server.registerTool(
     inputSchema: EstimateInputSchema,
   },
   async ({ root, policy, types }) => {
-    const ctx = createContext({ root, policy, dryRun: true });
+    const ctx = createContext({ root, policy: policy ?? 'safe', dryRun: true });
     const scan = await scanRepository(ctx);
     let assets = scan.assets;
     if (types && types.length > 0) {
       assets = assets.filter((a) => (types as string[]).includes(a.type));
     }
     const graph = buildAssetGraph({ ...scan, assets });
-    const plan = createOptimizationPlan(graph, policy, true);
+    const plan = createOptimizationPlan(graph, policy ?? 'safe', true);
 
     return jsonResponse({
       dryRun: true,
@@ -166,44 +174,54 @@ server.registerTool(
   },
   async ({ files, root, policy, dryRun, outputDir }) => {
     const runId = `run-${Date.now().toString(36)}`;
-    const tx = dryRun ? null : await beginTransaction(root, runId);
+    const isAudit = policy === 'audit';
+    const isDry = dryRun || isAudit;
+
+    const tx = isDry ? null : await beginTransaction(root, runId);
     const results: unknown[] = [];
 
-    for (const file of files) {
-      const resolved = safeResolve(root, file);
-      const ext = path.extname(resolved).toLowerCase();
-      const type = getAssetType(ext);
-      const dest = outputDir ? safeResolve(root, path.join(outputDir, path.basename(resolved))) : resolved;
+    try {
+      for (const file of files) {
+        const resolved = safeResolve(root, file);
+        const ext = path.extname(resolved).toLowerCase();
+        const type = getAssetType(ext);
+        const dest = outputDir ? safeResolve(root, path.join(outputDir, path.basename(resolved))) : resolved;
+
+        if (tx) {
+          await stageFileModification(tx, resolved, dest !== resolved ? dest : undefined);
+        }
+
+        if (isDry) {
+          results.push({ file: resolved, status: 'dry_run_simulated', type, policy });
+          continue;
+        }
+
+        if (type === 'image') {
+          results.push(await optimizeImage(resolved, dest, {}, policy));
+        } else if (type === 'svg') {
+          results.push(await optimizeSvg(resolved, dest, {}, policy));
+        } else if (type === 'video') {
+          results.push(await optimizeVideo(resolved, dest, {}, policy));
+        } else if (type === '3d') {
+          results.push(await optimize3D(resolved, dest, {}, policy));
+        } else {
+          results.push({ file: resolved, status: 'skipped', reason: `No optimizer for type: ${type}` });
+        }
+      }
 
       if (tx) {
-        await stageFileModification(tx, resolved, dest !== resolved ? dest : undefined);
+        await commitTransaction(tx);
       }
-
-      if (dryRun) {
-        results.push({ file: resolved, status: 'dry_run_simulated', type });
-        continue;
+    } catch (err) {
+      if (tx) {
+        await recordTransactionFailure(tx, err as Error);
       }
-
-      if (type === 'image') {
-        results.push(await optimizeImage(resolved, dest, {}, policy));
-      } else if (type === 'svg') {
-        results.push(await optimizeSvg(resolved, dest, {}, policy));
-      } else if (type === 'video') {
-        results.push(await optimizeVideo(resolved, dest, {}, policy));
-      } else if (type === '3d') {
-        results.push(await optimize3D(resolved, dest, {}, policy));
-      } else {
-        results.push({ file: resolved, status: 'skipped', reason: `No optimizer for type: ${type}` });
-      }
-    }
-
-    if (tx) {
-      await commitTransaction(tx);
+      throw err;
     }
 
     return jsonResponse({
       runId,
-      dryRun,
+      dryRun: isDry,
       policy,
       results,
     });
@@ -218,18 +236,21 @@ server.registerTool(
     inputSchema: OptimizeAllInputSchema,
   },
   async ({ root, policy, dryRun, types, limit }) => {
-    const ctx = createContext({ root, policy, dryRun });
+    const isAudit = policy === 'audit';
+    const isDry = dryRun || isAudit;
+
+    const ctx = createContext({ root, policy, dryRun: isDry });
     const scan = await scanRepository(ctx);
     let assets = scan.assets;
     if (types && types.length > 0) {
       assets = assets.filter((a) => (types as string[]).includes(a.type));
     }
     const graph = buildAssetGraph({ ...scan, assets });
-    const plan = createOptimizationPlan(graph, policy, dryRun);
+    const plan = createOptimizationPlan(graph, policy, isDry);
 
     const tasksToRun = limit ? plan.tasks.slice(0, limit) : plan.tasks;
     const runId = ctx.runId;
-    const tx = dryRun ? null : await beginTransaction(root, runId);
+    const tx = isDry ? null : await beginTransaction(root, runId);
 
     const reportItems: ReportItem[] = [];
     let originalTotalBytes = 0;
@@ -241,17 +262,19 @@ server.registerTool(
 
       originalTotalBytes += stat.size;
 
-      if (dryRun) {
+      if (isDry) {
+        const estSaved = task.estimatedSavingsBytes;
+        const optSize = Math.max(0, stat.size - estSaved);
         reportItems.push({
           path: task.assetPath,
           type: task.assetType,
           originalBytes: stat.size,
-          optimizedBytes: Math.max(0, stat.size - task.estimatedSavingsBytes),
-          savedBytes: task.estimatedSavingsBytes,
-          savedPercentage: Number(((task.estimatedSavingsBytes / stat.size) * 100).toFixed(2)),
+          optimizedBytes: optSize,
+          savedBytes: estSaved,
+          savedPercentage: stat.size > 0 ? Number(((estSaved / stat.size) * 100).toFixed(2)) : 0,
           status: 'optimized',
         });
-        optimizedTotalBytes += Math.max(0, stat.size - task.estimatedSavingsBytes);
+        optimizedTotalBytes += optSize;
         continue;
       }
 
@@ -286,6 +309,56 @@ server.registerTool(
             reason: res.reason,
           });
           optimizedTotalBytes += res.optimizedSizeBytes;
+        } else if (task.assetType === 'video') {
+          const res = await optimizeVideo(task.assetPath, task.assetPath, {}, policy);
+          reportItems.push({
+            path: task.assetPath,
+            type: task.assetType,
+            originalBytes: res.originalSizeBytes,
+            optimizedBytes: res.optimizedSizeBytes,
+            savedBytes: res.savedBytes,
+            savedPercentage: res.savedPercentage,
+            status: res.skipped ? 'skipped' : 'optimized',
+            reason: res.reason,
+          });
+          optimizedTotalBytes += res.optimizedSizeBytes;
+        } else if (task.assetType === '3d') {
+          const res = await optimize3D(task.assetPath, task.assetPath, {}, policy);
+          reportItems.push({
+            path: task.assetPath,
+            type: task.assetType,
+            originalBytes: res.originalSizeBytes,
+            optimizedBytes: res.optimizedSizeBytes,
+            savedBytes: res.savedBytes,
+            savedPercentage: res.savedPercentage,
+            status: res.skipped ? 'skipped' : 'optimized',
+            reason: res.reason,
+          });
+          optimizedTotalBytes += res.optimizedSizeBytes;
+        } else if (task.assetType === 'font') {
+          reportItems.push({
+            path: task.assetPath,
+            type: task.assetType,
+            originalBytes: stat.size,
+            optimizedBytes: stat.size,
+            savedBytes: 0,
+            savedPercentage: 0,
+            status: 'skipped',
+            reason: 'Font subsetting is experimental in v1; font skipped',
+          });
+          optimizedTotalBytes += stat.size;
+        } else {
+          reportItems.push({
+            path: task.assetPath,
+            type: task.assetType,
+            originalBytes: stat.size,
+            optimizedBytes: stat.size,
+            savedBytes: 0,
+            savedPercentage: 0,
+            status: 'skipped',
+            reason: `Unsupported asset type: ${task.assetType}`,
+          });
+          optimizedTotalBytes += stat.size;
         }
       } catch (err) {
         reportItems.push({
@@ -309,9 +382,36 @@ server.registerTool(
     const totalSaved = Math.max(0, originalTotalBytes - optimizedTotalBytes);
     const savedPct = originalTotalBytes > 0 ? Number(((totalSaved / originalTotalBytes) * 100).toFixed(2)) : 0;
 
+    const reportData: ReportData = {
+      runId,
+      createdAt: new Date().toISOString(),
+      rootPath: root,
+      policy,
+      totalAssets: tasksToRun.length,
+      optimizedCount: reportItems.filter((i) => i.status === 'optimized').length,
+      skippedCount: reportItems.filter((i) => i.status === 'skipped').length,
+      failedCount: reportItems.filter((i) => i.status === 'failed').length,
+      originalTotalBytes,
+      optimizedTotalBytes,
+      totalSavedBytes: totalSaved,
+      totalSavedPercentage: savedPct,
+      items: reportItems,
+      warnings: [],
+      errors: [],
+    };
+
+    // Save report data for retrieval by assetdiet_report tool
+    const reportsDir = path.join(root, '.assetdiet', 'reports');
+    await fs.promises.mkdir(reportsDir, { recursive: true }).catch(() => {});
+    await fs.promises.writeFile(
+      path.join(reportsDir, `${runId}.json`),
+      JSON.stringify(reportData, null, 2),
+      'utf-8'
+    ).catch(() => {});
+
     return jsonResponse({
       runId,
-      dryRun,
+      dryRun: isDry,
       policy,
       totalProcessed: tasksToRun.length,
       originalTotalBytes,
@@ -339,6 +439,15 @@ server.registerTool(
     let metadata: unknown = null;
     if (type === 'font') {
       metadata = await inspectFont(resolved);
+    } else if (type === 'image') {
+      metadata = await sharp(resolved).metadata();
+    } else if (type === '3d') {
+      try {
+        const meta = await extract3DMetadata(resolved);
+        metadata = meta.data;
+      } catch (e) {
+        metadata = { error: (e as Error).message };
+      }
     }
 
     return jsonResponse({
@@ -427,10 +536,29 @@ server.registerTool(
       const ext = path.extname(resolved).toLowerCase();
       const type = getAssetType(ext);
 
+      // Check if an original backup exists for this file in .assetdiet/backups
+      const rel = path.relative(root, resolved);
+      let originalPath = resolved;
+      const backupDir = path.join(root, '.assetdiet', 'backups');
+      if (fs.existsSync(backupDir)) {
+        const runs = await fs.promises.readdir(backupDir).catch(() => []);
+        for (const run of runs.reverse()) {
+          const candidate = path.join(backupDir, run, rel);
+          if (fs.existsSync(candidate)) {
+            originalPath = candidate;
+            break;
+          }
+        }
+      }
+
       if (type === 'image') {
-        validationResults.push({ file: resolved, ...(await validateImage(resolved, resolved)) });
+        validationResults.push({ file: resolved, ...(await validateImage(originalPath, resolved)) });
       } else if (type === 'svg') {
-        validationResults.push({ file: resolved, ...(await validateSvg(resolved)) });
+        validationResults.push({ file: resolved, ...(await validateSvg(originalPath, resolved)) });
+      } else if (type === 'video') {
+        validationResults.push({ file: resolved, ...(await validateVideo(originalPath, resolved)) });
+      } else if (type === '3d') {
+        validationResults.push({ file: resolved, ...(await validate3D(originalPath, resolved)) });
       } else {
         validationResults.push({ file: resolved, valid: true, note: 'No deep validation required' });
       }
@@ -479,12 +607,172 @@ server.registerTool(
   },
   async ({ file, root }) => {
     const resolved = safeResolve(root, file);
+    const ext = path.extname(resolved).toLowerCase();
+    const type = getAssetType(ext);
     const stat = await fs.promises.stat(resolved);
+
+    // 1. Image preview: generate real base64 thumbnail
+    if (type === 'image') {
+      try {
+        const thumbBuffer = await sharp(resolved)
+          .resize(256, 256, { fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 80 })
+          .toBuffer();
+
+        const meta = await sharp(resolved).metadata();
+        return jsonResponse({
+          file: resolved,
+          type: 'image',
+          sizeBytes: stat.size,
+          dimensions: { width: meta.width, height: meta.height },
+          channels: meta.channels,
+          hasAlpha: meta.hasAlpha,
+          format: meta.format,
+          previewAvailable: true,
+          previewDataUri: `data:image/webp;base64,${thumbBuffer.toString('base64')}`,
+        });
+      } catch (err) {
+        return jsonResponse({
+          file: resolved,
+          previewAvailable: false,
+          status: 'error',
+          reason: `Failed to render image thumbnail: ${(err as Error).message}`,
+        });
+      }
+    }
+
+    // 2. SVG preview: read text content and return inline data URI
+    if (type === 'svg') {
+      try {
+        const content = await fs.promises.readFile(resolved, 'utf-8');
+        return jsonResponse({
+          file: resolved,
+          type: 'svg',
+          sizeBytes: stat.size,
+          hasViewBox: content.includes('viewBox'),
+          previewAvailable: true,
+          previewDataUri: `data:image/svg+xml;base64,${Buffer.from(content).toString('base64')}`,
+        });
+      } catch (err) {
+        return jsonResponse({
+          file: resolved,
+          previewAvailable: false,
+          status: 'error',
+          reason: `Failed to read SVG: ${(err as Error).message}`,
+        });
+      }
+    }
+
+    // 3. Font preview: inspect font details
+    if (type === 'font') {
+      try {
+        const fontMeta = await inspectFont(resolved);
+        return jsonResponse({
+          file: resolved,
+          type: 'font',
+          sizeBytes: stat.size,
+          previewAvailable: true,
+          fontDetails: fontMeta,
+        });
+      } catch (err) {
+        return jsonResponse({
+          file: resolved,
+          previewAvailable: false,
+          status: 'error',
+          reason: (err as Error).message,
+        });
+      }
+    }
+
+    // 4. Video preview: probe for FFmpeg and extract poster frame if possible
+    if (type === 'video') {
+      const caps = await detectFFmpeg();
+      if (!caps.available) {
+        return jsonResponse({
+          file: resolved,
+          type: 'video',
+          sizeBytes: stat.size,
+          previewAvailable: false,
+          status: 'unsupported',
+          reason: 'FFmpeg is required in PATH to generate video preview frames',
+        });
+      }
+
+      try {
+        const thumbBuffer = await new Promise<Buffer>((resolve, reject) => {
+          const proc = spawn('ffmpeg', [
+            '-ss', '00:00:01',
+            '-i', resolved,
+            '-frames:v', '1',
+            '-vf', 'scale=320:-1',
+            '-f', 'image2pipe',
+            '-vcodec', 'mjpeg',
+            'pipe:1',
+          ]);
+
+          const chunks: Buffer[] = [];
+          proc.stdout.on('data', (d) => chunks.push(d));
+          proc.on('close', (code) => {
+            if (code === 0 && chunks.length > 0) {
+              resolve(Buffer.concat(chunks));
+            } else {
+              reject(new Error(`FFmpeg exited with code ${code}`));
+            }
+          });
+          proc.on('error', reject);
+        });
+
+        return jsonResponse({
+          file: resolved,
+          type: 'video',
+          sizeBytes: stat.size,
+          previewAvailable: true,
+          previewDataUri: `data:image/jpeg;base64,${thumbBuffer.toString('base64')}`,
+        });
+      } catch {
+        return jsonResponse({
+          file: resolved,
+          type: 'video',
+          sizeBytes: stat.size,
+          previewAvailable: false,
+          status: 'unsupported',
+          reason: 'Unable to extract poster frame from video',
+        });
+      }
+    }
+
+    // 5. 3D Model preview: extract scene summary
+    if (type === '3d') {
+      try {
+        const meta = await extract3DMetadata(resolved);
+        return jsonResponse({
+          file: resolved,
+          type: '3d',
+          sizeBytes: stat.size,
+          previewAvailable: false,
+          status: 'unsupported_visual_render',
+          reason: 'Visual 3D rasterization requires WebGL rendering context; scene structure summary provided',
+          sceneSummary: meta.data,
+        });
+      } catch (err) {
+        return jsonResponse({
+          file: resolved,
+          type: '3d',
+          sizeBytes: stat.size,
+          previewAvailable: false,
+          status: 'error',
+          reason: (err as Error).message,
+        });
+      }
+    }
+
     return jsonResponse({
       file: resolved,
+      type,
       sizeBytes: stat.size,
-      previewAvailable: true,
-      format: path.extname(resolved).slice(1),
+      previewAvailable: false,
+      status: 'unsupported',
+      reason: `Format '.${ext}' does not support preview generation`,
     });
   }
 );
@@ -497,18 +785,16 @@ server.registerTool(
     inputSchema: MigrateReferencesInputSchema,
   },
   async ({ originalFile, newFile, root, dryRun, updateCss, updateHtml }) => {
-    const origBase = path.basename(originalFile);
-    const newBase = path.basename(newFile);
+    const resolvedOriginal = safeResolve(root, originalFile);
+    const resolvedNew = safeResolve(root, newFile);
 
-    return jsonResponse({
-      dryRun,
-      originalFile,
-      newFile,
-      replacementProposed: `${origBase} -> ${newBase}`,
-      updateCss,
-      updateHtml,
-      status: dryRun ? 'proposal_ready' : 'migrated',
+    const result = await migrateReferences(root, resolvedOriginal, resolvedNew, {
+      dryRun: dryRun ?? false,
+      updateCss: updateCss ?? true,
+      updateHtml: updateHtml ?? true,
     });
+
+    return jsonResponse(result);
   }
 );
 
@@ -581,23 +867,83 @@ server.registerTool(
     inputSchema: ReportInputSchema,
   },
   async ({ root, runId, format, outputFile }) => {
-    const reportData: ReportData = {
-      runId: runId ?? 'latest',
-      createdAt: new Date().toISOString(),
-      rootPath: root,
-      policy: 'safe',
-      totalAssets: 0,
-      optimizedCount: 0,
-      skippedCount: 0,
-      failedCount: 0,
-      originalTotalBytes: 0,
-      optimizedTotalBytes: 0,
-      totalSavedBytes: 0,
-      totalSavedPercentage: 0,
-      items: [],
-      warnings: [],
-      errors: [],
-    };
+    let reportData: ReportData | null = null;
+
+    // Look for stored report in .assetdiet/reports/
+    const reportsDir = path.join(root, '.assetdiet', 'reports');
+    const runsDir = path.join(root, '.assetdiet', 'runs');
+
+    let targetRunId = runId;
+    if (!targetRunId || targetRunId === 'latest') {
+      // Find latest report or run
+      if (fs.existsSync(reportsDir)) {
+        const files = (await fs.promises.readdir(reportsDir)).filter((f) => f.endsWith('.json'));
+        if (files.length > 0) {
+          files.sort();
+          targetRunId = path.basename(files[files.length - 1]!, '.json');
+        }
+      }
+      if (!targetRunId && fs.existsSync(runsDir)) {
+        const files = (await fs.promises.readdir(runsDir)).filter((f) => f.endsWith('.json'));
+        if (files.length > 0) {
+          files.sort();
+          targetRunId = path.basename(files[files.length - 1]!, '.json');
+        }
+      }
+    }
+
+    if (targetRunId) {
+      const reportFile = path.join(reportsDir, `${targetRunId}.json`);
+      if (fs.existsSync(reportFile)) {
+        try {
+          reportData = JSON.parse(await fs.promises.readFile(reportFile, 'utf-8'));
+        } catch {}
+      }
+
+      // If no report found, check transaction run journal
+      if (!reportData) {
+        const runFile = path.join(runsDir, `${targetRunId}.json`);
+        if (fs.existsSync(runFile)) {
+          try {
+            const tx = JSON.parse(await fs.promises.readFile(runFile, 'utf-8'));
+            reportData = {
+              runId: targetRunId,
+              createdAt: tx.createdAt ?? new Date().toISOString(),
+              rootPath: root,
+              policy: 'safe',
+              totalAssets: tx.operations?.length ?? 0,
+              optimizedCount: tx.operations?.length ?? 0,
+              skippedCount: 0,
+              failedCount: tx.status === 'failed' ? 1 : 0,
+              originalTotalBytes: 0,
+              optimizedTotalBytes: 0,
+              totalSavedBytes: 0,
+              totalSavedPercentage: 0,
+              items: (tx.operations ?? []).map((op: any) => ({
+                path: op.originalPath,
+                type: getAssetType(path.extname(op.originalPath)),
+                originalBytes: 0,
+                optimizedBytes: 0,
+                savedBytes: 0,
+                savedPercentage: 0,
+                status: 'optimized',
+              })),
+              warnings: [],
+              errors: tx.error ? [tx.error] : [],
+            };
+          } catch {}
+        }
+      }
+    }
+
+    if (!reportData) {
+      return jsonResponse({
+        status: 'error',
+        message: targetRunId
+          ? `No recorded optimization report or transaction found for runId: ${targetRunId}`
+          : 'No optimization runs recorded yet. Run assetdiet_optimize or assetdiet_optimize_all first.',
+      });
+    }
 
     let formatted = '';
     if (format === 'markdown') {

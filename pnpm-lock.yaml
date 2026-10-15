@@ -486,6 +486,12 @@ importers:
       '@assetdiet/core':
         specifier: workspace:*
         version: link:../core
+      '@gltf-transform/core':
+        specifier: ^4.0.0
+        version: 4.5.1
+      '@gltf-transform/extensions':
+        specifier: ^4.0.0
+        version: 4.5.1
       sharp:
         specifier: 0.33.5
         version: 0.33.5

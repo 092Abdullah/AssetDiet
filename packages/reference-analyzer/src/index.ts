@@ -263,3 +263,137 @@ export async function analyzeReferences(
     referencedAssets,
   };
 }
+
+export interface ReferenceMigrationChange {
+  sourceFile: string;
+  lineNumber: number;
+  oldReference: string;
+  newReference: string;
+  originalLine: string;
+  updatedLine: string;
+}
+
+export interface ReferenceMigrationResult {
+  dryRun: boolean;
+  originalFile: string;
+  newFile: string;
+  totalOccurrences: number;
+  filesModified: number;
+  changes: ReferenceMigrationChange[];
+}
+
+/**
+ * Scan source files and update asset references when an asset is renamed/converted (e.g. logo.png -> logo.webp).
+ * In dry-run mode, proposes diffs without modifying files.
+ * In write mode, atomically updates matching source files.
+ */
+export async function migrateReferences(
+  root: string,
+  originalFile: string,
+  newFile: string,
+  options: {
+    dryRun?: boolean;
+    updateCss?: boolean;
+    updateHtml?: boolean;
+    excludes?: string[];
+  } = {}
+): Promise<ReferenceMigrationResult> {
+  const dryRun = options.dryRun ?? false;
+  const origBase = path.basename(originalFile);
+  const newBase = path.basename(newFile);
+
+  const origRel = normalizePath(path.relative(root, originalFile));
+  const newRel = normalizePath(path.relative(root, newFile));
+
+  const createIgnore =
+    typeof ignoreFactory === 'function'
+      ? ignoreFactory
+      : (ignoreFactory as unknown as { default: () => Ignore }).default;
+  const ig = createIgnore();
+
+  try {
+    const gitignore = await fs.promises.readFile(path.join(root, '.gitignore'), 'utf-8');
+    ig.add(gitignore);
+  } catch {
+    // Ignore missing .gitignore
+  }
+  ig.add(options.excludes ?? []);
+  ig.add(['node_modules/**', '.git/**', 'dist/**', '.turbo/**', '.assetdiet/**']);
+
+  const sourceFiles = await glob(
+    '**/*.{js,jsx,ts,tsx,mjs,cjs,vue,svelte,css,scss,sass,less,html,htm,json}',
+    {
+      cwd: root,
+      absolute: true,
+      onlyFiles: true,
+    }
+  );
+
+  const filteredFiles = sourceFiles.filter((file) => {
+    const rel = normalizePath(path.relative(root, file));
+    return !ig.ignores(rel);
+  });
+
+  const changes: ReferenceMigrationChange[] = [];
+  let filesModifiedCount = 0;
+
+  for (const file of filteredFiles) {
+    const ext = path.extname(file).toLowerCase();
+    const isCss = ['.css', '.scss', '.sass', '.less'].includes(ext);
+    const isHtml = ['.html', '.htm'].includes(ext);
+
+    if (isCss && options.updateCss === false) continue;
+    if (isHtml && options.updateHtml === false) continue;
+
+    try {
+      const content = await fs.promises.readFile(file, 'utf-8');
+      const lines = content.split('\n');
+      let fileModified = false;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!;
+        // Match either relative path reference or basename reference
+        if (line.includes(origRel) || line.includes(origBase)) {
+          let updatedLine = line;
+          if (line.includes(origRel)) {
+            updatedLine = updatedLine.replaceAll(origRel, newRel);
+          } else if (line.includes(origBase)) {
+            updatedLine = updatedLine.replaceAll(origBase, newBase);
+          }
+
+          if (updatedLine !== line) {
+            lines[i] = updatedLine;
+            fileModified = true;
+            changes.push({
+              sourceFile: file,
+              lineNumber: i + 1,
+              oldReference: origBase,
+              newReference: newBase,
+              originalLine: line,
+              updatedLine,
+            });
+          }
+        }
+      }
+
+      if (fileModified) {
+        filesModifiedCount++;
+        if (!dryRun) {
+          await fs.promises.writeFile(file, lines.join('\n'), 'utf-8');
+        }
+      }
+    } catch {
+      // Continue if unreadable
+    }
+  }
+
+  return {
+    dryRun,
+    originalFile,
+    newFile,
+    totalOccurrences: changes.length,
+    filesModified: filesModifiedCount,
+    changes,
+  };
+}
+

@@ -6,6 +6,7 @@ import {
   extractReferencesFromSource,
   matchReferencesToAssets,
   analyzeReferences,
+  migrateReferences,
 } from '../index.js';
 import type { AssetRecord } from '@assetdiet/core';
 
@@ -104,5 +105,42 @@ describe('analyzeReferences (integration)', () => {
     expect(result.unreferencedAssets.length).toBe(1);
     expect(usedAsset.isUnreferenced).toBe(false);
     expect(unusedAsset.isUnreferenced).toBe(true);
+  });
+
+  it('proposes migration changes in dryRun mode without modifying files', async () => {
+    const srcFile = path.join(tempDir, 'src', 'index.ts');
+    const contentBefore = await fs.promises.readFile(srcFile, 'utf-8');
+
+    const result = await migrateReferences(
+      tempDir,
+      path.join(tempDir, 'assets', 'used.png'),
+      path.join(tempDir, 'assets', 'used.webp'),
+      { dryRun: true }
+    );
+
+    expect(result.dryRun).toBe(true);
+    expect(result.totalOccurrences).toBe(1);
+    expect(result.filesModified).toBe(1);
+    expect(result.changes[0]?.newReference).toBe('used.webp');
+
+    // Content should remain unmodified
+    expect(await fs.promises.readFile(srcFile, 'utf-8')).toBe(contentBefore);
+  });
+
+  it('applies reference migration changes in write mode', async () => {
+    const srcFile = path.join(tempDir, 'src', 'index.ts');
+
+    const result = await migrateReferences(
+      tempDir,
+      path.join(tempDir, 'assets', 'used.png'),
+      path.join(tempDir, 'assets', 'used.webp'),
+      { dryRun: false }
+    );
+
+    expect(result.dryRun).toBe(false);
+    expect(result.totalOccurrences).toBe(1);
+    const updatedContent = await fs.promises.readFile(srcFile, 'utf-8');
+    expect(updatedContent).toContain("used.webp");
+    expect(updatedContent).not.toContain("used.png");
   });
 });
