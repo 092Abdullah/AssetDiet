@@ -13,8 +13,9 @@ import fs from 'node:fs';
 export function safeResolve(root: string, relativePath: string): string {
   const resolvedRoot = path.resolve(root);
   const resolved = path.resolve(root, relativePath);
+  const prefix = resolvedRoot.endsWith(path.sep) ? resolvedRoot : resolvedRoot + path.sep;
 
-  if (!resolved.startsWith(resolvedRoot + path.sep) && resolved !== resolvedRoot) {
+  if (!resolved.startsWith(prefix) && resolved !== resolvedRoot) {
     throw new Error(
       `Path traversal detected: "${relativePath}" resolves to "${resolved}" which is outside root "${resolvedRoot}"`
     );
@@ -29,7 +30,8 @@ export function safeResolve(root: string, relativePath: string): string {
 export function isWithinRoot(root: string, absolutePath: string): boolean {
   const resolvedRoot = path.resolve(root);
   const resolved = path.resolve(absolutePath);
-  return resolved === resolvedRoot || resolved.startsWith(resolvedRoot + path.sep);
+  const prefix = resolvedRoot.endsWith(path.sep) ? resolvedRoot : resolvedRoot + path.sep;
+  return resolved === resolvedRoot || resolved.startsWith(prefix);
 }
 
 /**
@@ -57,7 +59,7 @@ export async function safeRealpath(root: string, filePath: string): Promise<stri
  * Normalize a path to use forward slashes (for consistent reporting).
  */
 export function normalizePath(p: string): string {
-  return p.split(path.sep).join('/');
+  return p.replace(/\\/g, '/');
 }
 
 /**
