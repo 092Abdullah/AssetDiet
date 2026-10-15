@@ -1,5 +1,5 @@
 {
-  "extends": "@assetdiet/typescript-config/base.json",
+  "extends": "../typescript-config/base.json",
   "compilerOptions": { "rootDir": "src", "outDir": "dist" },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
