@@ -5,15 +5,15 @@
 
 export interface BinaryCapability {
   available: boolean;
-  path?: string;
-  version?: string;
-  error?: string;
+  path?: string | undefined;
+  version?: string | undefined;
+  error?: string | undefined;
 }
 
 export interface ImageEngineCapability {
   sharp: {
     available: boolean;
-    version?: string;
+    version?: string | undefined;
     formats: string[];
     supportsAvif: boolean;
     supportsWebP: boolean;
@@ -31,11 +31,11 @@ export interface VideoEngineCapability {
 export interface Model3DEngineCapability {
   gltfTransform: {
     available: boolean;
-    version?: string;
+    version?: string | undefined;
   };
   draco: {
     available: boolean;
-    version?: string;
+    version?: string | undefined;
   };
 }
 
@@ -47,7 +47,7 @@ export interface FontEngineCapability {
 export interface SvgEngineCapability {
   svgo: {
     available: boolean;
-    version?: string;
+    version?: string | undefined;
   };
 }
 
