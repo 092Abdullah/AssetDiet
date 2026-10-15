@@ -1,0 +1,37 @@
+{
+  "name": "@assetdiet/scanner",
+  "version": "0.1.0",
+  "description": "Repository scanner for AssetDiet — discovers, inventories, and hashes assets",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rimraf dist .tsbuildinfo"
+  },
+  "dependencies": {
+    "@assetdiet/core": "workspace:*",
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "fast-glob": "^3.3.2",
+    "ignore": "^5.3.2",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "@assetdiet/typescript-config": "workspace:*",
+    "@types/node": "^22.0.0",
+    "rimraf": "^5.0.10",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

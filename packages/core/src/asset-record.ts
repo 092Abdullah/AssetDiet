@@ -12,9 +12,9 @@ export interface ImageMetadata {
   hasAlpha: boolean;
   isAnimated: boolean;
   format: string;
-  colorSpace?: string;
-  orientation?: number;
-  frameCount?: number;
+  colorSpace?: string | undefined;
+  orientation?: number | undefined;
+  frameCount?: number | undefined;
 }
 
 export interface VideoMetadata {
@@ -45,7 +45,7 @@ export interface FontMetadata {
   subFamilyName: string;
   glyphCount: number;
   format: string;
-  unicodeRanges?: string[];
+  unicodeRanges?: string[] | undefined;
 }
 
 export interface SvgMetadata {
@@ -54,8 +54,8 @@ export interface SvgMetadata {
   hasExternalResources: boolean;
   hasEmbeddedRaster: boolean;
   hasScripts: boolean;
-  width?: string;
-  height?: string;
+  width?: string | undefined;
+  height?: string | undefined;
   idCount: number;
 }
 
