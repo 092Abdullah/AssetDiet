@@ -1,5 +1,5 @@
 {
-  "name": "assetdiet-mcp",
+  "name": "assetdiet-monorepo",
   "version": "0.1.0",
   "description": "Full-repository asset intelligence and optimization toolkit for AI coding assistants",
   "private": true,
@@ -16,7 +16,9 @@
     "lint": "turbo run lint",
     "clean": "turbo run clean",
     "format": "prettier --write \"**/*.{ts,js,json,md}\" --ignore-path .prettierignore",
-    "format:check": "prettier --check \"**/*.{ts,js,json,md}\" --ignore-path .prettierignore"
+    "format:check": "prettier --check \"**/*.{ts,js,json,md}\" --ignore-path .prettierignore",
+    "check": "pnpm run format:check && pnpm run typecheck && pnpm run lint && pnpm run test",
+    "pack:verify": "pnpm --filter assetdiet-mcp build && pnpm --filter assetdiet-mcp test"
   },
   "pnpm": {
     "overrides": {
@@ -32,6 +34,7 @@
     "eslint": "^9.0.0",
     "prettier": "^3.3.3",
     "rimraf": "^5.0.10",
+    "tsup": "^9.0.0",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

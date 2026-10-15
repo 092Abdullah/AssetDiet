@@ -1,0 +1,11 @@
+{
+  "name": "example-react-three-fiber",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Example React Three Fiber scene for AssetDiet 3D GLB optimization",
+  "scripts": {
+    "audit:3d": "assetdiet audit ./public/models --type model3d --policy safe",
+    "optimize:3d": "assetdiet optimize ./public/models --type model3d --policy safe",
+    "restore": "assetdiet restore"
+  }
+}

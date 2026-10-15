@@ -7,6 +7,36 @@ on:
     branches: [main, master]
 
 jobs:
+  lint-and-typecheck:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check code formatting
+        run: pnpm format:check
+
+      - name: Run typecheck
+        run: pnpm typecheck
+
+      - name: Run linter
+        run: pnpm lint
+
   test:
     name: Test on ${{ matrix.os }} (Node ${{ matrix.node-version }})
     runs-on: ${{ matrix.os }}
@@ -38,3 +68,45 @@ jobs:
 
       - name: Run all tests
         run: pnpm test
+
+  package-artifact-verification:
+    name: Verify Distribution Package Tarball
+    runs-on: ubuntu-latest
+    needs: [test, lint-and-typecheck]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build monorepo packages
+        run: pnpm build
+
+      - name: Pack assetdiet-mcp tarball
+        run: |
+          cd packages/assetdiet-mcp
+          npm pack --dry-run
+          npm pack
+
+      - name: Clean install and smoke test outside monorepo
+        run: |
+          TARBALL=$(ls packages/assetdiet-mcp/assetdiet-mcp-*.tgz | head -n 1)
+          mkdir -p /tmp/smoke-test
+          cd /tmp/smoke-test
+          npm init -y
+          npm install "$GITHUB_WORKSPACE/$TARBALL"
+          npx assetdiet --help
+          npx assetdiet doctor --json
+          npx assetdiet setup --dry-run --json

@@ -1079,13 +1079,20 @@ server.registerTool(
   },
 );
 
-async function main() {
+export async function startMcpServer(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
 
-if (process.env.NODE_ENV !== "test") {
-  main().catch((err) => {
+const isDirectRun =
+  process.argv[1] &&
+  (process.argv[1].endsWith("mcp-server/dist/index.js") ||
+    process.argv[1].endsWith("mcp-server\\dist\\index.js") ||
+    process.argv[1].endsWith("mcp-server/src/index.ts") ||
+    process.argv[1].endsWith("mcp-server\\src\\index.ts"));
+
+if (isDirectRun && process.env.NODE_ENV !== "test") {
+  startMcpServer().catch((err) => {
     console.error("Fatal MCP Server Error:", err);
     process.exit(1);
   });

@@ -1,0 +1,11 @@
+{
+  "name": "example-nextjs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Example Next.js application for AssetDiet asset optimization",
+  "scripts": {
+    "audit": "assetdiet audit . --policy safe",
+    "optimize": "assetdiet optimize . --policy safe",
+    "restore": "assetdiet restore"
+  }
+}
