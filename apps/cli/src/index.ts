@@ -48,7 +48,7 @@ program
   .description(
     "AssetDiet: Full-repository asset intelligence and optimization toolkit",
   )
-  .version("0.1.3");
+  .version("0.1.4");
 
 // scan
 program
@@ -533,6 +533,9 @@ program
     }
 
     if (options.summary) {
+      if (tx) {
+        await commitTransaction(tx);
+      }
       console.log(`\n🥗 AssetDiet Optimization Summary (${options.policy})`);
       console.log(`  Target:        ${root}`);
       console.log(`  Tasks Run:     ${plan.totalTasks}`);

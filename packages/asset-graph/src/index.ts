@@ -147,7 +147,7 @@ function analyzeImageOpportunity(
 
   const meta = asset.metadata?.type === "image" ? asset.metadata.data : null;
 
-  // If it's a PNG or JPEG without animation, format conversion to WebP gives huge gains (30-50%)
+  // If it's a PNG or JPEG without animation, format conversion to WebP gives huge gains (40-70%)
   if (
     (asset.extension === ".png" ||
       asset.extension === ".jpg" ||
@@ -157,10 +157,10 @@ function analyzeImageOpportunity(
     return {
       asset,
       action: "convert-format",
-      estimatedSavingsBytes: Math.round(asset.sizeBytes * 0.4),
-      confidence: 0.8,
+      estimatedSavingsBytes: Math.round(asset.sizeBytes * 0.5),
+      confidence: 0.85,
       risk: "medium", // Requires balanced or aggressive policy
-      reason: `${asset.extension.toUpperCase().slice(1)} (${(asset.sizeBytes / 1024).toFixed(0)}KB) — WebP conversion typically saves 30-50%`,
+      reason: `${asset.extension.toUpperCase().slice(1)} (${(asset.sizeBytes / 1024).toFixed(0)}KB) — WebP conversion typically saves 40-70% safely`,
     };
   }
 

@@ -60,14 +60,17 @@ export async function optimizeImage(
   const width = metadata.width ?? 0;
   const height = metadata.height ?? 0;
 
-  // Resize if explicitly requested and larger than bounds
-  if (options.maxWidth || options.maxHeight) {
-    pipeline = pipeline.resize({
-      width: options.maxWidth,
-      height: options.maxHeight,
-      fit: "inside",
-      withoutEnlargement: true,
-    });
+  // Determine target format: explicit option, or inferred from dest extension
+  let targetFormat = options.format;
+  if (!targetFormat) {
+    const destExt = path.extname(dest).toLowerCase();
+    if (destExt === ".webp") {
+      targetFormat = "webp";
+    } else if (destExt === ".avif") {
+      targetFormat = "avif";
+    } else {
+      targetFormat = "original";
+    }
   }
 
   // Determine quality based on policy
@@ -75,10 +78,10 @@ export async function optimizeImage(
   if (!quality) {
     switch (policy) {
       case "aggressive":
-        quality = 70;
+        quality = 75; // aggressive high compression
         break;
       case "balanced":
-        quality = 80;
+        quality = 85; // high quality ~85, near-lossless perceptual visual fidelity
         break;
       case "safe":
       case "audit":
@@ -88,11 +91,34 @@ export async function optimizeImage(
     }
   }
 
-  const targetFormat = options.format ?? "original";
+  // Determine resize bounds: explicit or aggressive downscale cap (>2560px)
+  let maxWidth = options.maxWidth;
+  let maxHeight = options.maxHeight;
+  if (!maxWidth && !maxHeight && policy === "aggressive") {
+    if (width > 2560 || height > 2560) {
+      maxWidth = 2560;
+      maxHeight = 2560;
+    }
+  }
+
+  // Resize if requested or capped
+  if (maxWidth || maxHeight) {
+    pipeline = pipeline.resize({
+      width: maxWidth,
+      height: maxHeight,
+      fit: "inside",
+      withoutEnlargement: true,
+    });
+  }
+
   const origFormat = metadata.format?.toLowerCase() ?? "jpeg";
 
   if (targetFormat === "webp") {
-    pipeline = pipeline.webp({ quality, effort: 4 });
+    pipeline = pipeline.webp({
+      quality,
+      effort: 4,
+      alphaQuality: Math.min(100, quality + 10),
+    });
   } else if (targetFormat === "avif") {
     pipeline = pipeline.avif({ quality, effort: 4 });
   } else {
@@ -150,13 +176,11 @@ export async function optimizeImage(
   // 2. Safety guard: if output is larger or equal and not explicitly resized, keep original!
   if (
     optimizedSizeBytes >= originalSizeBytes &&
-    targetFormat === "original" &&
     !options.maxWidth &&
     !options.maxHeight
   ) {
     if (src !== dest) {
-      await fs.promises.mkdir(path.dirname(dest), { recursive: true });
-      await fs.promises.copyFile(src, dest);
+      // Do not write a converted file that is larger than the source!
     }
     return {
       sourcePath: src,
@@ -170,7 +194,9 @@ export async function optimizeImage(
       height,
       skipped: true,
       reason:
-        "Optimized file was larger or equal to original; original preserved",
+        targetFormat !== "original" && targetFormat !== origFormat
+          ? `Converted ${targetFormat.toUpperCase()} was larger than original (${(optimizedSizeBytes / 1024).toFixed(1)} KB vs ${(originalSizeBytes / 1024).toFixed(1)} KB); original preserved`
+          : "Optimized file was larger or equal to original; original preserved",
     };
   }
 

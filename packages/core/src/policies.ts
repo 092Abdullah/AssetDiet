@@ -24,6 +24,12 @@ export interface PolicyConstraints {
   allow3DCompression: boolean;
   /** Allow updating source file references */
   allowReferenceMigration: boolean;
+  /** Default image quality target (0–100) */
+  defaultQuality: number;
+  /** Max image dimension (px), or null if preservation is required */
+  maxDimension: number | null;
+  /** Preferred target format for image conversions */
+  targetFormat: "original" | "webp" | "avif";
   /** Minimum SSIM score to accept an image optimization */
   minSsimScore: number;
   /** Maximum acceptable file size increase (0 = never allow larger output) */
@@ -42,28 +48,37 @@ export const POLICY_CONSTRAINTS: Readonly<
     allowTranscode: false,
     allow3DCompression: false,
     allowReferenceMigration: false,
+    defaultQuality: 85,
+    maxDimension: null,
+    targetFormat: "original",
     minSsimScore: 1.0,
     maxSizeIncreaseFactor: 0,
     alreadyOptimizedThreshold: 0.95,
   },
   safe: {
     allowWrites: true,
-    allowFormatConversion: false, // only lossless improvements to same format
+    allowFormatConversion: false, // strictly lossless / same-extension
     allowResize: false,
     allowTranscode: false,
     allow3DCompression: false,
     allowReferenceMigration: false,
+    defaultQuality: 85,
+    maxDimension: null,
+    targetFormat: "original",
     minSsimScore: 0.98,
     maxSizeIncreaseFactor: 0,
     alreadyOptimizedThreshold: 0.95,
   },
   balanced: {
     allowWrites: true,
-    allowFormatConversion: true,
-    allowResize: true,
+    allowFormatConversion: true, // high quality PNG/JPEG -> WebP
+    allowResize: false, // preserve original dimensions by default
     allowTranscode: true,
     allow3DCompression: true,
     allowReferenceMigration: true,
+    defaultQuality: 85, // high quality ~85, near imperceptible visual difference
+    maxDimension: null,
+    targetFormat: "webp",
     minSsimScore: 0.95,
     maxSizeIncreaseFactor: 0,
     alreadyOptimizedThreshold: 0.9,
@@ -75,6 +90,9 @@ export const POLICY_CONSTRAINTS: Readonly<
     allowTranscode: true,
     allow3DCompression: true,
     allowReferenceMigration: true,
+    defaultQuality: 75, // aggressive compression ~75
+    maxDimension: 2560, // cap excessively large images >2560px
+    targetFormat: "webp",
     minSsimScore: 0.88,
     maxSizeIncreaseFactor: 0,
     alreadyOptimizedThreshold: 0.8,

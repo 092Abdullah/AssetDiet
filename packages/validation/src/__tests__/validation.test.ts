@@ -141,6 +141,13 @@ describe("Validation Engine", () => {
     expect(res.errors.length).toBe(0);
   });
 
+  it("calculates SSIM and validates high perceptual similarity", async () => {
+    const res = await validateImage(samplePng, samplePng, { minSsim: 0.95 });
+    expect(res.valid).toBe(true);
+    expect(res.ssim).toBeDefined();
+    expect(res.ssim).toBeGreaterThanOrEqual(0.99);
+  });
+
   it("detects corrupted 3D model files", async () => {
     const corruptedGlb = path.join(tempDir, "corrupt.glb");
     await fs.promises.writeFile(corruptedGlb, "invalid binary header");

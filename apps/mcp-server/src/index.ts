@@ -641,13 +641,25 @@ server.registerTool(
             originalPath = candidate;
             break;
           }
+          const stem = rel.slice(0, -path.extname(rel).length);
+          for (const testExt of [".png", ".jpg", ".jpeg", ".webp"]) {
+            const candidateAlt = path.join(backupDir, run, stem + testExt);
+            if (fs.existsSync(candidateAlt)) {
+              originalPath = candidateAlt;
+              break;
+            }
+          }
         }
       }
 
       if (type === "image") {
+        const isConverted =
+          path.extname(originalPath).toLowerCase() !== ext.toLowerCase();
         validationResults.push({
           file: resolved,
-          ...(await validateImage(originalPath, resolved)),
+          ...(await validateImage(originalPath, resolved, {
+            allowFormatConversion: isConverted,
+          })),
         });
       } else if (type === "svg") {
         validationResults.push({

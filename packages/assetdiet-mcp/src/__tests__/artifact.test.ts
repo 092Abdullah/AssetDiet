@@ -51,9 +51,17 @@ describe("Built npm Package Artifact Verification", () => {
       encoding: "utf-8",
     });
     const parsed = JSON.parse(stdout);
-    expect(parsed.version).toBe("0.1.3");
+    expect(parsed.version).toBe("0.1.4");
     expect(parsed.system.nodeVersion).toBeDefined();
     expect(Array.isArray(parsed.checks)).toBe(true);
+  });
+
+  it("runs assetdiet audit --summary and outputs concise scorecard", () => {
+    const stdout = execSync(`node "${distCli}" audit . --summary`, {
+      encoding: "utf-8",
+    });
+    expect(stdout).toContain("AssetDiet Audit Summary");
+    expect(stdout).toContain("Total Media:");
   });
 
   it("runs assetdiet setup --dry-run --json and reports proposals", () => {

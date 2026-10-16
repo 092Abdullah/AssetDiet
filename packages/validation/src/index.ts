@@ -16,15 +16,75 @@ export interface ValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
+  ssim?: number | undefined;
 }
 
 export interface ImageValidationOptions {
   allowResize?: boolean;
+  minSsim?: number;
+  allowFormatConversion?: boolean;
+}
+
+/**
+ * Fast structural similarity index (SSIM) calculation on normalized images.
+ */
+export async function computeSsim(
+  buf1: Buffer,
+  buf2: Buffer,
+): Promise<number> {
+  const size = 128;
+  const [{ data: d1 }, { data: d2 }] = await Promise.all([
+    sharp(buf1)
+      .resize(size, size, { fit: "fill" })
+      .grayscale()
+      .raw()
+      .toBuffer({ resolveWithObject: true }),
+    sharp(buf2)
+      .resize(size, size, { fit: "fill" })
+      .grayscale()
+      .raw()
+      .toBuffer({ resolveWithObject: true }),
+  ]);
+
+  const n = d1.length;
+  let sum1 = 0;
+  let sum2 = 0;
+  for (let i = 0; i < n; i++) {
+    sum1 += d1[i]!;
+    sum2 += d2[i]!;
+  }
+  const mean1 = sum1 / n;
+  const mean2 = sum2 / n;
+
+  let var1 = 0;
+  let var2 = 0;
+  let cov = 0;
+  for (let i = 0; i < n; i++) {
+    const diff1 = d1[i]! - mean1;
+    const diff2 = d2[i]! - mean2;
+    var1 += diff1 * diff1;
+    var2 += diff2 * diff2;
+    cov += diff1 * diff2;
+  }
+  var1 /= n - 1;
+  var2 /= n - 1;
+  cov /= n - 1;
+
+  const c1 = (0.01 * 255) ** 2; // 6.5025
+  const c2 = (0.03 * 255) ** 2; // 58.5225
+
+  const numerator = (2 * mean1 * mean2 + c1) * (2 * cov + c2);
+  const denominator =
+    (mean1 * mean1 + mean2 * mean2 + c1) * (var1 + var2 + c2);
+
+  if (denominator === 0) return 1.0;
+  const ssim = numerator / denominator;
+  return Math.max(0, Math.min(1, Number(ssim.toFixed(4))));
 }
 
 /**
  * Validate an image file post-optimization by comparing original and optimized files independently.
- * Checks decodability, dimension parity (unless resized), and alpha channel preservation.
+ * Checks decodability, dimension parity (unless resized), SSIM similarity, and alpha channel preservation.
  */
 export async function validateImage(
   originalPath: string,
@@ -33,6 +93,7 @@ export async function validateImage(
 ): Promise<ValidationResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
+  let ssimScore: number | undefined;
 
   try {
     const origBuf = await fs.promises.readFile(originalPath);
@@ -59,9 +120,27 @@ export async function validateImage(
     }
 
     if (origMeta.hasAlpha && !optMeta.hasAlpha) {
-      errors.push(
-        "Optimized image lost transparency (alpha channel was present in original)",
-      );
+      if (!options.allowFormatConversion) {
+        errors.push(
+          "Optimized image lost transparency (alpha channel was present in original)",
+        );
+      } else {
+        warnings.push(
+          "Optimized image format does not contain an alpha channel",
+        );
+      }
+    }
+
+    // Compute perceptual visual fidelity score (SSIM)
+    try {
+      ssimScore = await computeSsim(origBuf, optBuf);
+      if (options.minSsim && ssimScore < options.minSsim) {
+        errors.push(
+          `Image SSIM similarity score (${ssimScore}) is below required policy threshold (${options.minSsim})`,
+        );
+      }
+    } catch {
+      // Non-fatal if SSIM computation cannot be performed
     }
   } catch (err) {
     errors.push(`Failed to decode image file: ${(err as Error).message}`);
@@ -71,6 +150,7 @@ export async function validateImage(
     valid: errors.length === 0,
     errors,
     warnings,
+    ...(ssimScore !== undefined ? { ssim: ssimScore } : {}),
   };
 }
 

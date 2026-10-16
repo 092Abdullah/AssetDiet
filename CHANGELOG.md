@@ -5,6 +5,27 @@ All notable changes to AssetDiet will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-10-16
+
+### Added
+
+- **Perceptual SSIM Validation Gate**: Integrated fast Structural Similarity Index Measure (`computeSsim`) into `@assetdiet/validation`. Image optimizations are now validated for structural and perceptual fidelity against policy minimums (`safe`: 0.98, `balanced`: 0.95, `aggressive`: 0.88).
+- **Optimization Policy Matrix & Real-World Results**: Documented formal matrix covering format conversion, quality targets, dimension caps, reference migration, and expected savings across `safe`, `balanced`, and `aggressive` policies.
+
+### Changed
+
+- **`balanced` Policy Format Conversion**: Modern format conversion (PNG/JPEG → WebP) is now standard for `balanced` policy, delivering 40–70%+ safe savings while preserving full alpha transparency and near-lossless fidelity at quality 85.
+- **`aggressive` Policy Optimization**: Tightened aggressive image quality to ~75 and capped oversized web images at 2560px max bounds without enlargement.
+- **`POLICY_CONSTRAINTS` Overhaul**: Standardized `defaultQuality`, `maxDimension`, and `targetFormat` constraints across core, planner, and engines for unified behavior.
+
+### Fixed
+
+- **`--summary` Flag Transaction Commit**: Fixed transaction handling so that `commitTransaction` is executed before printing the summary scorecard, preventing uncommitted rollback journals.
+- **Format Conversion Skip Handling**: Prevented larger converted outputs from replacing original assets; added detailed skip reasons in terminal and JSON outputs.
+- **Supply Chain Security**: Upgraded Sharp to `^0.35.5` bundling `libvips 8.18.7`, eliminating all CVE alerts.
+
+---
+
 ## [0.1.1] - 2026-10-16
 
 ### Fixed

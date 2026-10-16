@@ -33,7 +33,7 @@ import { runDoctor } from "./doctor.js";
 import { runUninstall } from "./uninstall.js";
 import { startMcpServer } from "./mcp.js";
 
-const PACKAGE_VERSION = "0.1.3";
+const PACKAGE_VERSION = "0.1.4";
 
 // Ensure low-level stream close EIO race conditions never crash the process
 process.on("uncaughtException", (err: any) => {
@@ -773,6 +773,9 @@ program
     }
 
     if (options.summary) {
+      if (tx) {
+        await commitTransaction(tx);
+      }
       console.log(`\n🥗 AssetDiet Optimization Summary (${options.policy})`);
       console.log(`  Target:        ${root}`);
       console.log(`  Tasks Run:     ${plan.totalTasks}`);
@@ -788,8 +791,12 @@ program
     if (tx) {
       await commitTransaction(tx);
       console.log(`\n✅ Optimization complete! Run ID: ${ctx.runId}`);
-      console.log(`Total saved: ${(savedBytesTotal / 1024).toFixed(1)} KB`);
+      console.log(`Total saved: ${formatBytes(savedBytesTotal)}`);
       console.log(`To rollback: assetdiet restore --run ${ctx.runId}`);
+    } else {
+      console.log(
+        `\n✅ Dry run finished. Estimated total savings: ${formatBytes(savedBytesTotal)}`,
+      );
     }
   });
 
