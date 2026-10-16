@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1760 980" width="1760" height="980" fill="none">
+  <defs>
+    <radialGradient id="demo-glow" cx="50%" cy="0%" r="60%">
+      <stop offset="0%" stop-color="#C4F269" stop-opacity="0.12"/>
+      <stop offset="60%" stop-color="#8B83FF" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#151719" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="card-border" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F6F7F2" stop-opacity="0.2"/>
+      <stop offset="50%" stop-color="#C4F269" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#8B83FF" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="header-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1C1F22"/>
+      <stop offset="100%" stop-color="#141618"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+    .dim { fill: #8F96A0; }
+    .bright { fill: #F6F7F2; }
+    .lime { fill: #C4F269; }
+    .violet { fill: #8B83FF; }
+    .cyan { fill: #50E3C2; }
+    .amber { fill: #FFBD2E; }
+  </style>
+
+  <!-- Canvas Background -->
+  <rect width="1760" height="980" rx="20" fill="#0E1012"/>
+  <rect width="1760" height="980" rx="20" fill="url(#demo-glow)"/>
+
+  <!-- Terminal Window Shell -->
+  <g transform="translate(40, 36)">
+    <!-- Window Border & Body -->
+    <rect width="1680" height="908" rx="16" fill="#131518" stroke="url(#card-border)" stroke-width="2"/>
+
+    <!-- Window Title Bar -->
+    <path d="M 0 16 C 0 7.16 7.16 0 16 0 L 1664 0 C 1672.84 0 1680 7.16 1680 16 L 1680 56 L 0 56 Z" fill="url(#header-grad)"/>
+    <line x1="0" y1="56" x2="1680" y2="56" stroke="#25292E" stroke-width="1.5"/>
+
+    <!-- Traffic Lights -->
+    <circle cx="32" cy="28" r="7" fill="#FF5F56"/>
+    <circle cx="56" cy="28" r="7" fill="#FFBD2E"/>
+    <circle cx="80" cy="28" r="7" fill="#27C93F"/>
+
+    <!-- Title Bar Info -->
+    <g transform="translate(840, 28)" text-anchor="middle">
+      <text class="mono" font-size="14" font-weight="600" fill="#8F96A0">
+        <tspan fill="#C4F269">assetdiet</tspan> — zsh — 1680×908
+      </text>
+    </g>
+
+    <!-- Path Pill on Right -->
+    <g transform="translate(1420, 16)">
+      <rect width="230" height="24" rx="12" fill="#1E2226" stroke="#32383E" stroke-width="1"/>
+      <text x="115" y="16.5" class="mono" font-size="11" fill="#8F96A0" text-anchor="middle">
+        ~/projects/web-app <tspan fill="#8B83FF">(main)</tspan>
+      </text>
+    </g>
+
+    <!-- TERMINAL CONTENT -->
+    <g transform="translate(48, 96)">
+      <!-- Line 1: Command Prompt -->
+      <g transform="translate(0, 0)">
+        <text class="mono" font-size="17" font-weight="700">
+          <tspan class="lime">user@macbook</tspan><tspan fill="#4E555F">:</tspan><tspan class="violet">~/projects/web-app</tspan><tspan fill="#4E555F">$</tspan>
+          <tspan class="bright" font-weight="700"> assetdiet audit --policy safe</tspan>
+        </text>
+      </g>
+
+      <!-- Step 1: Scanner Progress -->
+      <g transform="translate(0, 36)">
+        <text class="mono" font-size="15" fill="#C4F269">🔍 Discovering repository assets across image, svg, video, 3d, font...</text>
+        <text x="0" y="24" class="mono" font-size="14" fill="#8F96A0">   Traversed 1,420 files in 48ms (respected .gitignore and .assetdietignore)</text>
+        <text x="0" y="46" class="mono" font-size="14" fill="#F6F7F2">   Indexed <tspan class="lime" font-weight="700">42 assets</tspan> · SHA-256 graph built · <tspan class="amber" font-weight="700">2 byte-identical duplicate groups flagged</tspan></text>
+      </g>
+
+      <!-- Step 2: Audit Table Box -->
+      <g transform="translate(0, 126)">
+        <!-- Table container -->
+        <rect width="1584" height="250" rx="10" fill="#171A1E" stroke="#2B3036" stroke-width="1.5"/>
+
+        <!-- Table Header -->
+        <rect width="1584" height="38" rx="10" fill="#1E2227"/>
+        <line x1="0" y1="38" x2="1584" y2="38" stroke="#2B3036" stroke-width="1.5"/>
+        <text x="24" y="24" class="mono" font-size="12" font-weight="700" fill="#8F96A0" letter-spacing="0.06em">TYPE</text>
+        <text x="120" y="24" class="mono" font-size="12" font-weight="700" fill="#8F96A0" letter-spacing="0.06em">FILE PATH</text>
+        <text x="680" y="24" class="mono" font-size="12" font-weight="700" fill="#8F96A0" letter-spacing="0.06em">ORIGINAL</text>
+        <text x="880" y="24" class="mono" font-size="12" font-weight="700" fill="#8F96A0" letter-spacing="0.06em">OPTIMIZED</text>
+        <text x="1080" y="24" class="mono" font-size="12" font-weight="700" fill="#8F96A0" letter-spacing="0.06em">SAVINGS</text>
+        <text x="1280" y="24" class="mono" font-size="12" font-weight="700" fill="#8F96A0" letter-spacing="0.06em">ENGINE &amp; DETAILS</text>
+
+        <!-- Table Row 1 (Image) -->
+        <g transform="translate(24, 72)">
+          <rect width="70" height="22" rx="5" fill="#C4F269" fill-opacity="0.15"/>
+          <text x="35" y="15" class="mono" font-size="11" font-weight="700" fill="#C4F269" text-anchor="middle">IMAGE</text>
+          <text x="96" y="15" class="mono" font-size="14" font-weight="600" fill="#F6F7F2">public/images/hero-banner.png</text>
+          <text x="656" y="15" class="mono" font-size="14" fill="#8F96A0">2,450.2 KB</text>
+          <text x="856" y="15" class="mono" font-size="14" fill="#F6F7F2">412.0 KB</text>
+          <text x="1056" y="15" class="mono" font-size="14" font-weight="700" fill="#C4F269">-83.2% (2,038 KB)</text>
+          <text x="1256" y="15" class="mono" font-size="13" fill="#8F96A0">Sharp · Lossless palette quantization</text>
+        </g>
+
+        <!-- Table Row 2 (SVG) -->
+        <g transform="translate(24, 114)">
+          <rect width="70" height="22" rx="5" fill="#50E3C2" fill-opacity="0.15"/>
+          <text x="35" y="15" class="mono" font-size="11" font-weight="700" fill="#50E3C2" text-anchor="middle">SVG</text>
+          <text x="96" y="15" class="mono" font-size="14" font-weight="600" fill="#F6F7F2">public/icons/illustrations-pack.svg</text>
+          <text x="656" y="15" class="mono" font-size="14" fill="#8F96A0">384.6 KB</text>
+          <text x="856" y="15" class="mono" font-size="14" fill="#F6F7F2">88.2 KB</text>
+          <text x="1056" y="15" class="mono" font-size="14" font-weight="700" fill="#C4F269">-77.1% (296 KB)</text>
+          <text x="1256" y="15" class="mono" font-size="13" fill="#8F96A0">SVGO · Stripped XML/editor metadata</text>
+        </g>
+
+        <!-- Table Row 3 (3D GLTF) -->
+        <g transform="translate(24, 156)">
+          <rect width="70" height="22" rx="5" fill="#8B83FF" fill-opacity="0.15"/>
+          <text x="35" y="15" class="mono" font-size="11" font-weight="700" fill="#8B83FF" text-anchor="middle">3D GLB</text>
+          <text x="96" y="15" class="mono" font-size="14" font-weight="600" fill="#F6F7F2">assets/models/character-avatar.glb</text>
+          <text x="656" y="15" class="mono" font-size="14" fill="#8F96A0">18.4 MB</text>
+          <text x="856" y="15" class="mono" font-size="14" fill="#F6F7F2">4.2 MB</text>
+          <text x="1056" y="15" class="mono" font-size="14" font-weight="700" fill="#C4F269">-77.2% (14.2 MB)</text>
+          <text x="1256" y="15" class="mono" font-size="13" fill="#8F96A0">glTF-Transform · Weld, prune &amp; dedup</text>
+        </g>
+
+        <!-- Table Row 4 (Duplicate) -->
+        <g transform="translate(24, 198)">
+          <rect width="70" height="22" rx="5" fill="#FFBD2E" fill-opacity="0.15"/>
+          <text x="35" y="15" class="mono" font-size="11" font-weight="700" fill="#FFBD2E" text-anchor="middle">DUP</text>
+          <text x="96" y="15" class="mono" font-size="14" font-weight="600" fill="#FFBD2E">public/brand/logo-copy.png [Exact Duplicate]</text>
+          <text x="656" y="15" class="mono" font-size="14" fill="#8F96A0">1,210.0 KB</text>
+          <text x="856" y="15" class="mono" font-size="14" fill="#F6F7F2">0.0 KB</text>
+          <text x="1056" y="15" class="mono" font-size="14" font-weight="700" fill="#C4F269">-100% (1,210 KB)</text>
+          <text x="1256" y="15" class="mono" font-size="13" fill="#8F96A0">Points to public/brand/logo.png</text>
+        </g>
+      </g>
+
+      <!-- Step 3: Optimization Execution with Rollback Protection -->
+      <g transform="translate(0, 404)">
+        <text class="mono" font-size="15" font-weight="700">
+          <tspan class="lime">user@macbook</tspan><tspan fill="#4E555F">:</tspan><tspan class="violet">~/projects/web-app</tspan><tspan fill="#4E555F">$</tspan>
+          <tspan class="bright" font-weight="700"> assetdiet optimize --policy safe</tspan>
+        </text>
+
+        <g transform="translate(0, 28)">
+          <text class="mono" font-size="14" fill="#8B83FF">📦 Created bit-for-bit backup archive: <tspan fill="#F6F7F2">.assetdiet/backups/run_20261016_08f9a2/</tspan></text>
+          <text x="0" y="24" class="mono" font-size="14" fill="#C4F269">⚡ Applying transformations into atomic swap files (.tmp.*)...</text>
+          <text x="0" y="48" class="mono" font-size="14" fill="#50E3C2">🛡️  Quality Gates: Decodability 100% PASS · Dimension Parity 100% PASS · SSIM >= 0.999</text>
+          <text x="0" y="72" class="mono" font-size="14" font-weight="700" fill="#F6F7F2">✨ Successfully optimized <tspan class="lime">42 assets</tspan>. Total repository saved: <tspan class="lime">17.74 MB (-76.8%)</tspan></text>
+        </g>
+      </g>
+
+      <!-- Step 4: Reversible Rollback Demo -->
+      <g transform="translate(0, 540)">
+        <text class="mono" font-size="15" font-weight="700">
+          <tspan class="lime">user@macbook</tspan><tspan fill="#4E555F">:</tspan><tspan class="violet">~/projects/web-app</tspan><tspan fill="#4E555F">$</tspan>
+          <tspan class="bright" font-weight="700"> assetdiet restore --run run_20261016_08f9a2</tspan>
+        </text>
+        <g transform="translate(0, 26)">
+          <text class="mono" font-size="14" fill="#C4F269">🔄 Restoring 42 assets from .assetdiet/backups/run_20261016_08f9a2/ ...</text>
+          <text x="0" y="24" class="mono" font-size="14" font-weight="600" fill="#F6F7F2">✅ Rollback complete: 42 files restored to exact pre-optimization SHA-256 byte state (0 errors, 0 skipped).</text>
+        </g>
+      </g>
+
+      <!-- Step 5: Summary Footer Card -->
+      <g transform="translate(0, 630)">
+        <rect width="1584" height="66" rx="12" fill="#191C20" stroke="#C4F269" stroke-opacity="0.3" stroke-width="1.5"/>
+        <text x="28" y="40" class="mono" font-size="15" font-weight="700" fill="#C4F269">✓ 100% LOCAL-FIRST</text>
+        <text x="210" y="40" class="mono" font-size="14" fill="#F6F7F2">· Zero cloud uploads</text>
+        <text x="400" y="40" class="mono" font-size="14" fill="#8B83FF">· Atomic rollback journal</text>
+        <text x="640" y="40" class="mono" font-size="14" fill="#50E3C2">· 16 Discrete MCP Tools for AI Coding Assistants</text>
+        <text x="1420" y="40" class="mono" font-size="13" font-weight="700" fill="#8F96A0">AssetDiet v0.1.0</text>
+      </g>
+    </g>
+  </g>
+</svg>

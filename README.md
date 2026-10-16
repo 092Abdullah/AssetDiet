@@ -23,7 +23,7 @@
 <br />
 
 <a href="#-terminal-demo">
-  <img src="docs/assets/assetdiet-demo.gif" alt="AssetDiet terminal session demonstrating scan, audit with duplicate detection, optimization, and rollback" width="880" />
+  <img src="docs/assets/assetdiet-demo.svg" alt="AssetDiet terminal session demonstrating scan, audit with duplicate detection, optimization, and rollback" width="880" />
 </a>
 
 </div>
