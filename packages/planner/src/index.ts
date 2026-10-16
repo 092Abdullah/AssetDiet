@@ -73,6 +73,30 @@ export function createOptimizationPlan(
     const opp = graph.opportunities[i]!;
     const reqPolicy = getRequiredPolicyForRisk(opp.risk);
 
+    // If task requires format conversion but current policy does not allow it (e.g. safe policy),
+    // adapt into a lossless, same-extension compression task!
+    if (
+      opp.action === "convert-format" &&
+      currentPolicyLevel < POLICY_LEVELS.balanced
+    ) {
+      tasks.push({
+        id: `task-${i + 1}`,
+        assetPath: opp.asset.path,
+        assetType: opp.asset.type,
+        action: "compress",
+        estimatedSavingsBytes: Math.round(opp.asset.sizeBytes * 0.15),
+        confidence: 0.7,
+        risk: "none",
+        requiredPolicy: "safe",
+        reason: `${opp.asset.extension.toUpperCase().slice(1)} (${(opp.asset.sizeBytes / 1024).toFixed(0)}KB) — lossless in-place compression under safe policy`,
+      });
+
+      estimatedTotalSavingsBytes += Math.round(
+        opp.asset.sizeBytes * 0.15 * 0.7,
+      );
+      continue;
+    }
+
     // Only include tasks permitted by current policy level
     if (POLICY_LEVELS[reqPolicy] <= currentPolicyLevel) {
       tasks.push({

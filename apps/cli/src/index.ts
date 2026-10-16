@@ -26,7 +26,10 @@ import {
   stageFileDeletion,
   commitTransaction,
 } from "@assetdiet/transactions";
-import { analyzeReferences } from "@assetdiet/reference-analyzer";
+import {
+  analyzeReferences,
+  migrateReferences,
+} from "@assetdiet/reference-analyzer";
 import { generateMarkdownReport, type ReportData } from "@assetdiet/reporting";
 
 // Ensure low-level stream close EIO race conditions never crash the process
@@ -45,7 +48,7 @@ program
   .description(
     "AssetDiet: Full-repository asset intelligence and optimization toolkit",
   )
-  .version("0.1.1");
+  .version("0.1.2");
 
 // scan
 program
@@ -262,6 +265,7 @@ program
   .description("Run optimization plan on repository assets")
   .option("-p, --policy <policy>", "Policy: safe, balanced, aggressive", "safe")
   .option("--dry-run", "Simulate changes without writing files", false)
+  .option("--summary", "Output a concise scorecard summary", false)
   .action(async (targetPath = ".", options) => {
     const root = path.resolve(targetPath);
     const isAudit = options.policy === "audit";
@@ -291,7 +295,8 @@ program
     const tx = isDry ? null : await beginTransaction(root, ctx.runId);
     let savedBytesTotal = 0;
 
-    for (const task of plan.tasks) {
+    for (let taskIndex = 0; taskIndex < plan.tasks.length; taskIndex++) {
+      const task = plan.tasks[taskIndex]!;
       if (task.action === "remove-duplicate") {
         const matchingAsset = scan.assets.find(
           (a) => a.path === task.assetPath,
@@ -396,24 +401,60 @@ program
       }
 
       process.stderr.write(
-        `  ⏳ Processing [${task.assetType.toUpperCase()}] ${path.relative(root, task.assetPath)}...\r`,
+        `  ⏳ [${taskIndex + 1}/${plan.tasks.length}] Processing [${task.assetType.toUpperCase()}] ${path.relative(root, task.assetPath)}...\r`,
       );
 
       try {
         if (task.assetType === "image") {
+          const isConvert =
+            task.action === "convert-format" &&
+            (options.policy === "balanced" || options.policy === "aggressive");
+          const targetExt = isConvert ? ".webp" : path.extname(task.assetPath);
+          const targetPath = isConvert
+            ? task.assetPath.slice(0, -path.extname(task.assetPath).length) +
+              targetExt
+            : task.assetPath;
+
+          if (tx && isConvert && targetPath !== task.assetPath) {
+            await stageFileModification(tx, task.assetPath, targetPath);
+          }
+
           const res = await optimizeImage(
             task.assetPath,
-            task.assetPath,
-            {},
+            targetPath,
+            isConvert ? { format: "webp" } : {},
             options.policy as OptimizationPolicy,
           );
           process.stderr.write(
             "                                                                                \r",
           );
-          if (!res.skipped) {
-            console.log(
-              `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${formatBytes(res.originalSizeBytes)} -> ${formatBytes(res.optimizedSizeBytes)} (-${res.savedPercentage}%)`,
-            );
+          if (!res.skipped && res.savedBytes > 0) {
+            if (isConvert && targetPath !== task.assetPath) {
+              const migResult = await migrateReferences(
+                root,
+                task.assetPath,
+                targetPath,
+              );
+              if (tx && migResult.changes.length > 0) {
+                const uniqueFiles = new Set(
+                  migResult.changes.map((c) => c.sourceFile),
+                );
+                for (const updated of uniqueFiles) {
+                  await stageFileModification(tx, updated);
+                }
+              }
+              await fs.promises.unlink(task.assetPath);
+              console.log(
+                `  [CONVERTED] ${path.relative(root, task.assetPath)} -> ${path.relative(root, targetPath)}: ${formatBytes(res.originalSizeBytes)} -> ${formatBytes(res.optimizedSizeBytes)} (-${res.savedPercentage}%)` +
+                  (migResult.totalOccurrences > 0
+                    ? ` (${migResult.totalOccurrences} code references migrated)`
+                    : ""),
+              );
+            } else {
+              console.log(
+                `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${formatBytes(res.originalSizeBytes)} -> ${formatBytes(res.optimizedSizeBytes)} (-${res.savedPercentage}%)`,
+              );
+            }
             savedBytesTotal += res.savedBytes;
           } else {
             console.log(
@@ -489,6 +530,19 @@ program
           `  [ERROR] ${path.relative(root, task.assetPath)}: ${(err as Error).message}`,
         );
       }
+    }
+
+    if (options.summary) {
+      console.log(`\n🥗 AssetDiet Optimization Summary (${options.policy})`);
+      console.log(`  Target:        ${root}`);
+      console.log(`  Tasks Run:     ${plan.totalTasks}`);
+      console.log(`  Total Saved:   ${formatBytes(savedBytesTotal)}`);
+      if (tx) {
+        console.log(`  Run ID:        ${ctx.runId}`);
+        console.log(`  Rollback:      assetdiet restore --run ${ctx.runId}`);
+      }
+      console.log();
+      return;
     }
 
     if (tx) {

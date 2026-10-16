@@ -143,37 +143,36 @@ function analyzeOpportunity(
 function analyzeImageOpportunity(
   asset: AssetRecord,
 ): OptimizationOpportunity | null {
-  // Heuristic: large PNGs and JPEGs over 50KB almost always benefit from compression
   if (asset.sizeBytes < 10_000) return null;
 
   const meta = asset.metadata?.type === "image" ? asset.metadata.data : null;
 
-  // If it's a PNG without alpha channel, suggest WebP conversion
+  // If it's a PNG or JPEG without animation, format conversion to WebP gives huge gains (30-50%)
   if (
-    asset.extension === ".png" &&
-    meta &&
-    !meta.hasAlpha &&
-    !meta.isAnimated
+    (asset.extension === ".png" ||
+      asset.extension === ".jpg" ||
+      asset.extension === ".jpeg") &&
+    (!meta || !meta.isAnimated)
   ) {
     return {
       asset,
       action: "convert-format",
-      estimatedSavingsBytes: Math.round(asset.sizeBytes * 0.35),
-      confidence: 0.75,
-      risk: "low",
-      reason: `PNG without transparency (${(asset.sizeBytes / 1024).toFixed(0)}KB) — WebP conversion typically saves 30-40%`,
+      estimatedSavingsBytes: Math.round(asset.sizeBytes * 0.4),
+      confidence: 0.8,
+      risk: "medium", // Requires balanced or aggressive policy
+      reason: `${asset.extension.toUpperCase().slice(1)} (${(asset.sizeBytes / 1024).toFixed(0)}KB) — WebP conversion typically saves 30-50%`,
     };
   }
 
-  // Large images: suggest compression
-  if (asset.sizeBytes > 200_000) {
+  // Large images: suggest in-place compression
+  if (asset.sizeBytes > 25_000) {
     return {
       asset,
       action: "compress",
-      estimatedSavingsBytes: Math.round(asset.sizeBytes * 0.25),
-      confidence: 0.65,
+      estimatedSavingsBytes: Math.round(asset.sizeBytes * 0.2),
+      confidence: 0.7,
       risk: "none",
-      reason: `Large image (${(asset.sizeBytes / 1024).toFixed(0)}KB) — compression can reduce size significantly`,
+      reason: `Image (${(asset.sizeBytes / 1024).toFixed(0)}KB) — lossless compression reduces size safely`,
     };
   }
 

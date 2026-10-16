@@ -1,6 +1,6 @@
 {
   "name": "@assetdiet/cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "AssetDiet standalone developer CLI",
   "license": "MIT",
   "type": "module",

@@ -27,6 +27,10 @@ import {
   generateJsonReport,
   type ReportData,
 } from "@assetdiet/reporting";
+import {
+  analyzeReferences,
+  migrateReferences,
+} from "@assetdiet/reference-analyzer";
 
 function sha256(filePath: string): string {
   const data = fs.readFileSync(filePath);
@@ -324,5 +328,98 @@ export default function Home() {
 
     // Original hash must be restored
     expect(sha256(pngPath)).toBe(initialHashes.png);
+  });
+
+  it("Step 8: Balanced policy performs WebP format conversion and atomic reference migration", async () => {
+    // Create source component referencing hero.png
+    const srcDir = path.join(projectDir, "src");
+    await fs.promises.mkdir(srcDir, { recursive: true });
+    const appTsxPath = path.join(srcDir, "App.tsx");
+    await fs.promises.writeFile(
+      appTsxPath,
+      `export default function App() { return <img src="/hero.png" alt="Hero" />; }\n`,
+    );
+
+    const tx = await beginTransaction(projectDir, "balanced-format-migration");
+    const webpPath = pngPath.replace(/\.png$/, ".webp");
+
+    // Stage original png deletion/modification and target webp creation
+    await stageFileModification(tx, pngPath, webpPath);
+
+    // Optimize image into WebP format under balanced policy
+    const optRes = await optimizeImage(
+      pngPath,
+      webpPath,
+      { format: "webp" },
+      "balanced",
+    );
+    expect(optRes.skipped).toBe(false);
+    expect(optRes.savedBytes).toBeGreaterThan(0);
+    expect(fs.existsSync(webpPath)).toBe(true);
+
+    // Stage App.tsx before migration so rollback can restore references
+    await stageFileModification(tx, appTsxPath);
+
+    // Migrate code references
+    const mig = await migrateReferences(projectDir, pngPath, webpPath);
+    expect(mig.totalOccurrences).toBeGreaterThan(0);
+    expect(
+      mig.changes.some(
+        (c) => path.resolve(c.sourceFile) === path.resolve(appTsxPath),
+      ),
+    ).toBe(true);
+
+    // Unlink old png
+    await fs.promises.unlink(pngPath);
+    expect(fs.existsSync(pngPath)).toBe(false);
+
+    // Verify App.tsx has been updated to point to .webp
+    const updatedCode = await fs.promises.readFile(appTsxPath, "utf-8");
+    expect(updatedCode).toContain("/hero.webp");
+    expect(updatedCode).not.toContain("/hero.png");
+
+    await commitTransaction(tx);
+
+    // Now verify rollback restores the original PNG and original source code!
+    await rollbackTransaction(projectDir, tx.runId);
+
+    expect(fs.existsSync(pngPath)).toBe(true);
+    expect(sha256(pngPath)).toBe(initialHashes.png);
+    expect(fs.existsSync(webpPath)).toBe(false);
+
+    const rolledBackCode = await fs.promises.readFile(appTsxPath, "utf-8");
+    expect(rolledBackCode).toContain("/hero.png");
+    expect(rolledBackCode).not.toContain("/hero.webp");
+  });
+
+  it("Step 9: Reference analyzer distinguishes active vs unreferenced duplicates", async () => {
+    const dup1 = path.join(publicDir, "badge-primary.svg");
+    const dup2 = path.join(publicDir, "badge-copy.svg");
+    const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="#f00"/></svg>`;
+    await fs.promises.writeFile(dup1, svgContent);
+    await fs.promises.writeFile(dup2, svgContent);
+
+    // Add code reference only to badge-primary.svg
+    const compPath = path.join(projectDir, "src", "Badge.tsx");
+    await fs.promises.writeFile(
+      compPath,
+      `export const Badge = () => <img src="/badge-primary.svg" />;\n`,
+    );
+
+    const ctx = createContext({ root: projectDir });
+    const scan = await scanRepository(ctx);
+    await analyzeReferences(projectDir, scan.assets);
+
+    const a1 = scan.assets.find(
+      (a) => path.resolve(a.path) === path.resolve(dup1),
+    );
+    const a2 = scan.assets.find(
+      (a) => path.resolve(a.path) === path.resolve(dup2),
+    );
+
+    expect(a1).toBeDefined();
+    expect(a2).toBeDefined();
+    expect(a1?.isUnreferenced).toBe(false);
+    expect(a2?.isUnreferenced).toBe(true);
   });
 });

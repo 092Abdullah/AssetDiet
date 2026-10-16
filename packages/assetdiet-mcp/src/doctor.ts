@@ -69,7 +69,7 @@ function getNpmVersion(): string {
   }
 }
 
-export async function runDoctor(version = "0.1.1"): Promise<DoctorReport> {
+export async function runDoctor(version = "0.1.2"): Promise<DoctorReport> {
   const checks: DoctorCheck[] = [];
   const remediations: string[] = [];
 

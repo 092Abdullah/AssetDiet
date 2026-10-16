@@ -311,14 +311,50 @@ server.registerTool(
 
       try {
         if (task.assetType === "image") {
+          const isConvert =
+            task.action === "convert-format" &&
+            (policy === "balanced" || policy === "aggressive");
+          const targetExt = isConvert ? ".webp" : path.extname(task.assetPath);
+          const targetPath = isConvert
+            ? task.assetPath.slice(0, -path.extname(task.assetPath).length) +
+              targetExt
+            : task.assetPath;
+
+          if (tx && isConvert && targetPath !== task.assetPath) {
+            await stageFileModification(tx, task.assetPath, targetPath);
+          }
+
           const res = await optimizeImage(
             task.assetPath,
-            task.assetPath,
-            {},
+            targetPath,
+            isConvert ? { format: "webp" } : {},
             policy,
           );
+
+          if (!res.skipped && res.savedBytes > 0) {
+            if (isConvert && targetPath !== task.assetPath) {
+              const migResult = await migrateReferences(
+                root,
+                task.assetPath,
+                targetPath,
+              );
+              if (tx && migResult.changes.length > 0) {
+                const uniqueFiles = new Set(
+                  migResult.changes.map((c) => c.sourceFile),
+                );
+                for (const updated of uniqueFiles) {
+                  await stageFileModification(tx, updated);
+                }
+              }
+              await fs.promises.unlink(task.assetPath);
+            }
+          }
+
           reportItems.push({
-            path: task.assetPath,
+            path:
+              isConvert && !res.skipped && res.savedBytes > 0
+                ? targetPath
+                : task.assetPath,
             type: task.assetType,
             originalBytes: res.originalSizeBytes,
             optimizedBytes: res.optimizedSizeBytes,

@@ -51,7 +51,7 @@ describe("Built npm Package Artifact Verification", () => {
       encoding: "utf-8",
     });
     const parsed = JSON.parse(stdout);
-    expect(parsed.version).toBe("0.1.1");
+    expect(parsed.version).toBe("0.1.2");
     expect(parsed.system.nodeVersion).toBeDefined();
     expect(Array.isArray(parsed.checks)).toBe(true);
   });
