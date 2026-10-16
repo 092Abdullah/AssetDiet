@@ -24,7 +24,8 @@ AssetDiet uses three standardized policy levels to govern how aggressively files
 AssetDiet automatically respects:
 
 1. `.gitignore` rules in your repository.
-2. Standard exclusions: `node_modules`, `.git`, `.next`, `dist`, `build`, `coverage`, and `.assetdiet`.
+2. Custom `.assetdietignore` rules in your repository root.
+3. Standard build and dependency exclusions: `node_modules`, `.git`, `dist`, `build`, `out`, `.output`, `.next`, `.nuxt`, `.turbo`, `.cache`, `coverage`, and `.assetdiet`.
 
 ### Custom Ignore File: `.assetdietignore`
 

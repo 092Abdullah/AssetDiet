@@ -61,6 +61,18 @@ async function buildIgnoreFilter(
     // No .gitignore — that's fine
   }
 
+  // Load .assetdietignore if present
+  const assetdietignorePath = path.join(root, ".assetdietignore");
+  try {
+    const assetdietignoreContent = await fs.promises.readFile(
+      assetdietignorePath,
+      "utf-8",
+    );
+    ig.add(assetdietignoreContent);
+  } catch {
+    // No .assetdietignore — that's fine
+  }
+
   // Add configured exclusions
   ig.add(excludes);
 

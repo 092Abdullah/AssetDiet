@@ -143,6 +143,7 @@ assetdiet audit [options] [targetPath]
 #### Options:
 
 - `-p, --policy <policy>`: Policy level (`audit`, `safe`, `balanced`, `aggressive`). Default: `safe`.
+- `--summary`: Output a concise 3-line scorecard summary of opportunities and savings.
 - `--json`: Output audit findings and duplicate groups as JSON.
 - `-h, --help`: Display help.
 

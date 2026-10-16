@@ -25,3 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Font analysis and duplicate family detection.
 - **Multi-Format Reporting**: Markdown, JSON, and standalone HTML summary report generators.
 - **End-to-End Tarball Test Suite**: Automated pack-and-test validation ensuring the published `.tgz` installs and runs cleanly outside the monorepo.
+
+### Changed
+
+- **High-Signal Terminal Audit Output**: Redesigned `assetdiet audit` with a screenshot-ready scorecard, clear tabular columns, explicit duplicate groupings, and normalized cross-platform paths.
+- **Concise Scorecard Flag (`--summary`)**: Added `--summary` to `assetdiet audit` for quick CI checks and concise AI agent prompts.
+- **Responsive Progress Feedback**: Long-running optimizations (video, 3D, batch images) stream real-time progress indicators to stderr without polluting stdout or MCP JSON-RPC streams.
+- **Expanded Default Ignores**: Added `.assetdietignore` support and standard build exclusions (`out`, `.output`, `.nuxt`, `.cache`) alongside `.gitignore`.
+- **Spotlight on Code Migration**: Elevated `assetdiet_find_references` and `assetdiet_migrate_references` in documentation as a key differentiator.

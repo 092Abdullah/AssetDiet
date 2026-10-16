@@ -295,6 +295,14 @@ program
     }
   });
 
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+}
+
 // 6. audit
 program
   .command("audit [targetPath]")
@@ -306,15 +314,24 @@ program
     "Policy: audit, safe, balanced, aggressive",
     "safe",
   )
-  .option("--json", "Output results as JSON")
+  .option("--summary", "Output a concise scorecard summary", false)
+  .option("--json", "Output results as JSON", false)
   .action(async (targetPath = ".", options) => {
     const root = path.resolve(targetPath);
     const ctx = createContext({
       root,
       policy: options.policy as OptimizationPolicy,
       dryRun: true,
+      onProgress: (msg) => {
+        if (!options.json) {
+          process.stderr.write(`  [audit] ${msg}\r`);
+        }
+      },
     });
     const scan = await scanRepository(ctx);
+    if (!options.json) {
+      process.stderr.write("                                        \r");
+    }
     const graph = buildAssetGraph(scan);
     const plan = createOptimizationPlan(
       graph,
@@ -322,28 +339,143 @@ program
       true,
     );
 
+    const totalAssetBytes = scan.assets.reduce(
+      (acc, a) => acc + a.sizeBytes,
+      0,
+    );
+    const totalSavingsBytes = plan.estimatedTotalSavingsBytes;
+    const savingsPercent =
+      totalAssetBytes > 0
+        ? ((totalSavingsBytes / totalAssetBytes) * 100).toFixed(1)
+        : "0";
+
+    const duplicateFileCount = graph.duplicateGroups.reduce(
+      (acc, g) => acc + g.assets.length,
+      0,
+    );
+    const duplicateRecoverableBytes = graph.duplicateGroups.reduce((acc, g) => {
+      const singleSize = g.assets[0]?.sizeBytes ?? 0;
+      return acc + singleSize * Math.max(0, g.assets.length - 1);
+    }, 0);
+
     if (options.json) {
       console.log(
-        JSON.stringify({ plan, duplicates: graph.duplicateGroups }, null, 2),
+        JSON.stringify(
+          {
+            summary: {
+              root,
+              policy: options.policy,
+              totalAssets: scan.assets.length,
+              totalAssetBytes,
+              opportunitiesFound: plan.totalTasks,
+              estimatedSavingsBytes: totalSavingsBytes,
+              estimatedSavingsPercentage: parseFloat(savingsPercent),
+              duplicateGroups: graph.duplicateGroups.length,
+              duplicateFiles: duplicateFileCount,
+              duplicateRecoverableBytes,
+            },
+            plan,
+            duplicates: graph.duplicateGroups,
+          },
+          null,
+          2,
+        ),
       );
-    } else {
-      console.log(`\n🔍 AssetDiet Audit Report for ${root}`);
-      console.log(`Policy: ${options.policy}`);
-      console.log(`Opportunities found: ${plan.totalTasks}`);
-      console.log(
-        `Potential savings: ${(plan.estimatedTotalSavingsBytes / 1024).toFixed(1)} KB`,
-      );
-      console.log(`Duplicate groups: ${graph.duplicateGroups.length}\n`);
+      return;
+    }
 
-      for (const task of plan.tasks.slice(0, 20)) {
+    if (options.summary) {
+      console.log(`\n🥗 AssetDiet Audit Summary (${options.policy})`);
+      console.log(`  Target:        ${root}`);
+      console.log(
+        `  Total Media:   ${scan.assets.length} assets (${formatBytes(totalAssetBytes)})`,
+      );
+      console.log(`  Opportunities: ${plan.totalTasks} files`);
+      console.log(
+        `  Est. Savings:  -${formatBytes(totalSavingsBytes)} (-${savingsPercent}%)`,
+      );
+      if (graph.duplicateGroups.length > 0) {
         console.log(
-          `  • [${task.action.toUpperCase()}] ${path.relative(root, task.assetPath)}`,
-        );
-        console.log(
-          `    Savings: ~${(task.estimatedSavingsBytes / 1024).toFixed(1)} KB (${task.reason})`,
+          `  Duplicates:    ${graph.duplicateGroups.length} groups (${duplicateFileCount} files, -${formatBytes(duplicateRecoverableBytes)} recoverable)`,
         );
       }
+      console.log();
+      return;
     }
+
+    // Default Human Output — High-signal, screenshot-ready, clear columns
+    console.log(`\n🥗 AssetDiet Audit Report`);
+    console.log(
+      `─────────────────────────────────────────────────────────────────`,
+    );
+    console.log(
+      `Policy:        ${options.policy} (read-only audit, 0 files modified)`,
+    );
+    console.log(`Target:        ${root}`);
+    console.log(
+      `Inventory:     ${scan.assets.length} assets (${formatBytes(totalAssetBytes)}) across project`,
+    );
+    console.log(
+      `Opportunities: ${plan.totalTasks} optimizable files | Est. Savings: -${formatBytes(totalSavingsBytes)} (-${savingsPercent}%)`,
+    );
+    if (graph.duplicateGroups.length > 0) {
+      console.log(
+        `Duplicates:    ${graph.duplicateGroups.length} duplicate groups (${duplicateFileCount} files, -${formatBytes(duplicateRecoverableBytes)} recoverable)`,
+      );
+    }
+    console.log(
+      `─────────────────────────────────────────────────────────────────\n`,
+    );
+
+    if (plan.tasks.length > 0) {
+      console.log(`Top Optimization Opportunities:`);
+      for (const task of plan.tasks.slice(0, 15)) {
+        const rel = path.relative(root, task.assetPath).replace(/\\/g, "/");
+        const estSavings = formatBytes(task.estimatedSavingsBytes);
+        console.log(
+          `  • ${rel.padEnd(38)} -${estSavings.padStart(8)}  [${task.assetType.toUpperCase()}] ${task.reason}`,
+        );
+      }
+      if (plan.tasks.length > 15) {
+        console.log(`    ...and ${plan.tasks.length - 15} more opportunities`);
+      }
+      console.log();
+    } else {
+      console.log(
+        `✨ All discovered assets are already optimal under the '${options.policy}' policy!\n`,
+      );
+    }
+
+    if (graph.duplicateGroups.length > 0) {
+      console.log(`Duplicate Assets Detected (Exact Byte Copies):`);
+      for (const [idx, group] of graph.duplicateGroups.slice(0, 5).entries()) {
+        const firstAsset = group.assets[0];
+        const sz = firstAsset ? formatBytes(firstAsset.sizeBytes) : "";
+        console.log(
+          `  Group #${idx + 1} (${group.assets.length} copies, ${sz} each):`,
+        );
+        for (const a of group.assets) {
+          console.log(`    ↳ ${a.relativePath}`);
+        }
+      }
+      if (graph.duplicateGroups.length > 5) {
+        console.log(
+          `    ...and ${graph.duplicateGroups.length - 5} more duplicate groups`,
+        );
+      }
+      console.log();
+    }
+
+    console.log(`Next Actions:`);
+    console.log(
+      `  • Apply optimizations: assetdiet optimize . --policy ${options.policy}`,
+    );
+    console.log(
+      `  • Ask your AI assistant: "Run AssetDiet audit and apply safe optimizations"`,
+    );
+    console.log(
+      `  • 100% reversible: every pass is backed by atomic backups & rollback journal.\n`,
+    );
   });
 
 // 7. optimize
@@ -363,8 +495,12 @@ program
       root,
       policy: options.policy as OptimizationPolicy,
       dryRun: isDry,
+      onProgress: (msg) => {
+        process.stderr.write(`  [scanner] ${msg}\r`);
+      },
     });
     const scan = await scanRepository(ctx);
+    process.stderr.write("                                        \r");
     const graph = buildAssetGraph(scan);
     const plan = createOptimizationPlan(
       graph,
@@ -383,7 +519,7 @@ program
     for (const task of plan.tasks) {
       if (isDry) {
         console.log(
-          `  [SIMULATED] ${path.relative(root, task.assetPath)}: -${(task.estimatedSavingsBytes / 1024).toFixed(1)} KB`,
+          `  [SIMULATED] ${path.relative(root, task.assetPath)}: -${formatBytes(task.estimatedSavingsBytes)}`,
         );
         savedBytesTotal += task.estimatedSavingsBytes;
         continue;
@@ -393,6 +529,10 @@ program
         await stageFileModification(tx, task.assetPath);
       }
 
+      process.stderr.write(
+        `  ⏳ Processing [${task.assetType.toUpperCase()}] ${path.relative(root, task.assetPath)}...\r`,
+      );
+
       try {
         if (task.assetType === "image") {
           const res = await optimizeImage(
@@ -401,9 +541,12 @@ program
             {},
             options.policy as OptimizationPolicy,
           );
+          process.stderr.write(
+            "                                                                                \r",
+          );
           if (!res.skipped) {
             console.log(
-              `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${(res.originalSizeBytes / 1024).toFixed(1)}KB -> ${(res.optimizedSizeBytes / 1024).toFixed(1)}KB (-${res.savedPercentage}%)`,
+              `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${formatBytes(res.originalSizeBytes)} -> ${formatBytes(res.optimizedSizeBytes)} (-${res.savedPercentage}%)`,
             );
             savedBytesTotal += res.savedBytes;
           } else {
@@ -418,9 +561,12 @@ program
             {},
             options.policy as OptimizationPolicy,
           );
+          process.stderr.write(
+            "                                                                                \r",
+          );
           if (!res.skipped) {
             console.log(
-              `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${(res.originalSizeBytes / 1024).toFixed(1)}KB -> ${(res.optimizedSizeBytes / 1024).toFixed(1)}KB (-${res.savedPercentage}%)`,
+              `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${formatBytes(res.originalSizeBytes)} -> ${formatBytes(res.optimizedSizeBytes)} (-${res.savedPercentage}%)`,
             );
             savedBytesTotal += res.savedBytes;
           } else {
@@ -435,9 +581,12 @@ program
             {},
             options.policy as OptimizationPolicy,
           );
+          process.stderr.write(
+            "                                                                                \r",
+          );
           if (!res.skipped) {
             console.log(
-              `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${(res.originalSizeBytes / 1024).toFixed(1)}KB -> ${(res.optimizedSizeBytes / 1024).toFixed(1)}KB (-${res.savedPercentage}%)`,
+              `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${formatBytes(res.originalSizeBytes)} -> ${formatBytes(res.optimizedSizeBytes)} (-${res.savedPercentage}%)`,
             );
             savedBytesTotal += res.savedBytes;
           } else {
@@ -452,9 +601,12 @@ program
             {},
             options.policy as OptimizationPolicy,
           );
+          process.stderr.write(
+            "                                                                                \r",
+          );
           if (!res.skipped) {
             console.log(
-              `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${(res.originalSizeBytes / 1024).toFixed(1)}KB -> ${(res.optimizedSizeBytes / 1024).toFixed(1)}KB (-${res.savedPercentage}%)`,
+              `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${formatBytes(res.originalSizeBytes)} -> ${formatBytes(res.optimizedSizeBytes)} (-${res.savedPercentage}%)`,
             );
             savedBytesTotal += res.savedBytes;
           } else {
@@ -464,6 +616,9 @@ program
           }
         }
       } catch (err) {
+        process.stderr.write(
+          "                                                                                \r",
+        );
         console.error(
           `  [ERROR] ${path.relative(root, task.assetPath)}: ${(err as Error).message}`,
         );

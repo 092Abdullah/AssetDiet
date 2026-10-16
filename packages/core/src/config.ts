@@ -22,8 +22,12 @@ export const AssetDietConfigSchema = z.object({
       ".assetdiet",
       "dist",
       "build",
+      "out",
+      ".output",
       ".next",
+      ".nuxt",
       ".turbo",
+      ".cache",
       "coverage",
     ]),
 
