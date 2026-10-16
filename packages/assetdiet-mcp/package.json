@@ -19,7 +19,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/092Abdullah/AssetDiet.git",
+    "url": "git+https://github.com/092Abdullah/AssetDiet.git",
     "directory": "packages/assetdiet-mcp"
   },
   "homepage": "https://github.com/092Abdullah/AssetDiet#readme",

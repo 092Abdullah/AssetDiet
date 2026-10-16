@@ -12,13 +12,14 @@
 
 **Local-first CLI and MCP server for auditing, optimizing and safely managing images, SVGs, videos and 3D assets in codebases.**
 
+[![npm](https://img.shields.io/npm/v/assetdiet-mcp.svg?color=C4F269&labelColor=151719)](https://www.npmjs.com/package/assetdiet-mcp)
 [![CI](https://github.com/092Abdullah/AssetDiet/actions/workflows/ci.yml/badge.svg)](https://github.com/092Abdullah/AssetDiet/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-C4F269.svg?labelColor=151719)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.0.0-F6F7F2.svg?labelColor=151719)](package.json)
 [![MCP Tools](https://img.shields.io/badge/MCP-16_Tools-8B83FF.svg?labelColor=151719)](docs/mcp-tools.md)
 [![Privacy](https://img.shields.io/badge/Privacy-100%25_Local-C4F269.svg?labelColor=151719)](docs/security.md)
 
-[Quick Start](#-quick-start-verified-source-install) · [Demo](#-terminal-demo) · [AI Prompt](#-using-with-ai-coding-assistants) · [Supported Formats](#-supported-asset-formats--engines) · [Workflow](#-how-assetdiet-works) · [Policies & Safety](#-policies-safety--rollback-engine) · [Documentation](#-documentation)
+[Quick Start](#-quick-start) · [Demo](#-terminal-demo) · [AI Prompt](#-using-with-ai-coding-assistants) · [Supported Formats](#-supported-asset-formats--engines) · [Workflow](#-how-assetdiet-works) · [Policies & Safety](#-policies-safety--rollback-engine) · [Documentation](#-documentation)
 
 <br />
 
@@ -40,12 +41,48 @@ Modern web and mobile repositories routinely accumulate bloated assets: uncompre
 
 ---
 
-## ⚡ Quick Start: Verified Source Install
+## ⚡ Quick Start
 
-> [!NOTE]
-> Until `assetdiet-mcp` is published to the public npm registry, source installation is the tested, verified method to use AssetDiet. (Instructions for post-publication `npx` commands are documented in the [Installation Guide](docs/installation.md)).
+No cloning or repository setup required. Run AssetDiet directly with `npx` in any project:
 
-### 1. Clone and Build
+### 1. Configure Your AI Coding Assistant
+
+Automatically detect and register AssetDiet with **Cursor**, **Claude Desktop**, **Claude Code**, **Windsurf**, or **Codex**:
+
+```bash
+# Preview proposed configuration changes (dry-run)
+npx -y assetdiet-mcp@latest setup --dry-run
+
+# Apply configuration with automated backup (.bak) creation
+npx -y assetdiet-mcp@latest setup --yes
+```
+
+### 2. Verify Your System Environment
+
+Run the diagnostic doctor to inspect engine readiness and installed coding assistants:
+
+```bash
+npx -y assetdiet-mcp@latest doctor
+```
+
+### 3. Run a Read-Only Codebase Audit
+
+Simulate potential byte savings across your project without modifying any files:
+
+```bash
+npx -y assetdiet-mcp@latest audit . --policy safe
+```
+
+### 4. Optimize with Rollback Safety
+
+```bash
+npx -y assetdiet-mcp@latest optimize . --policy safe
+```
+
+---
+
+<details>
+<summary>🛠️ <b>Or Build from Source (Contributors)</b></summary>
 
 ```bash
 git clone https://github.com/092Abdullah/AssetDiet.git
@@ -55,33 +92,7 @@ pnpm build
 pnpm test
 ```
 
-### 2. Verify Your System Environment
-
-Run the built diagnostic doctor to inspect engine readiness and installed assistants:
-
-```bash
-node packages/assetdiet-mcp/dist/cli.js doctor
-```
-
-### 3. Run a Read-Only Codebase Audit
-
-Simulate potential byte savings across your project without modifying any files:
-
-```bash
-node packages/assetdiet-mcp/dist/cli.js audit /path/to/your/project --policy safe
-```
-
-### 4. Configure Your AI Coding Assistant
-
-Automatically detect and register AssetDiet with **Cursor**, **Claude Desktop**, **Claude Code**, **Windsurf**, or **Codex**:
-
-```bash
-# Preview proposed changes (dry-run)
-node packages/assetdiet-mcp/dist/cli.js setup --dry-run
-
-# Apply configuration with automated backup (.bak) creation
-node packages/assetdiet-mcp/dist/cli.js setup --yes
-```
+</details>
 
 ---
 
@@ -165,7 +176,7 @@ Every file modification in AssetDiet is backed by multi-layered recovery guarant
 3. **Atomic Replacements**: Temporary files are validated before the atomic filesystem swap. Files are never overwritten partially.
 4. **One-Command Restore**:
    ```bash
-   node packages/assetdiet-mcp/dist/cli.js restore --run <runId>
+   npx -y assetdiet-mcp@latest restore --run <runId>
    ```
 
 ---

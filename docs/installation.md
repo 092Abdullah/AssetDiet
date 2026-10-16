@@ -2,8 +2,8 @@
 
 AssetDiet can be installed and verified directly from source for local monorepo development, or configured as a standalone CLI and MCP server for your AI coding assistants.
 
-> [!IMPORTANT]
-> **Source Installation Notice**: Until `assetdiet-mcp` is published to the public npm registry, **Method 1 (Verified Source Installation)** is the verified and tested path. Instructions for public `npx` and global `npm` installs are provided under **Method 2** for once the package is released.
+> [!TIP]
+> **Published on npm**: `assetdiet-mcp` is published on the public npm registry. You can run all commands directly with `npx -y assetdiet-mcp@latest` without cloning or building from source. For development or contributing to the core engines, see **Source Installation** below.
 
 ---
 
