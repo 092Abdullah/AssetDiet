@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" fill="none">
+  <style>
+    .bg { fill: #151719; }
+    .mark-primary { fill: #C4F269; }
+    .mark-secondary { fill: #C4F269; fill-opacity: 0.75; }
+    .mark-accent { fill: #8B83FF; }
+    .border-glow { stroke: #F6F7F2; stroke-opacity: 0.08; }
+  </style>
+
+  <!-- Squircle Base Frame -->
+  <rect class="bg" width="256" height="256" rx="56"/>
+  <rect class="border-glow" x="2" y="2" width="252" height="252" rx="54" stroke-width="3"/>
+
+  <!-- AssetDiet Core Emblem: Irregular assets enter -> Negative Space A/D -> Aligned grid exits -->
+  <g transform="translate(40, 40)">
+    <!-- INCOMING ASSET TILES (Upper-Left): Irregular sizes representing bloated raw assets -->
+    <rect class="mark-secondary" x="0" y="0" width="46" height="26" rx="7"/>
+    <rect class="mark-secondary" x="0" y="34" width="26" height="46" rx="7"/>
+    <rect class="mark-primary" x="34" y="34" width="36" height="36" rx="8"/>
+
+    <!-- MONOGRAM CORE: 'A' and 'D' Negative Space Architecture -->
+    <!-- Upper right shoulder forming the 'A' cross-gate & 'D' outer curve -->
+    <path class="mark-primary" d="
+      M 80 0
+      H 130
+      C 155 0 176 21 176 46
+      V 74
+      C 176 80 171 85 165 85
+      H 142
+      C 136 85 131 80 131 74
+      V 46
+      C 131 38 124 31 116 31
+      H 80
+      C 74 31 70 26 70 20
+      V 11
+      C 70 5 74 0 80 0 Z
+    "/>
+
+    <!-- Central compression aperture (The crossbar of 'A' and inner spine of 'D') -->
+    <path class="mark-primary" d="
+      M 80 50
+      H 108
+      C 114 50 119 55 119 61
+      V 85
+      C 119 91 114 96 108 96
+      H 80
+      C 74 96 70 91 70 85
+      V 61
+      C 70 55 74 50 80 50 Z
+    "/>
+
+    <!-- Subtle violet telemetry checkpoint dot -->
+    <circle class="mark-accent" cx="52" cy="13" r="4.5"/>
+
+    <!-- OUTGOING LEAN GRID (Lower-Right): Precise, aligned, verified 2x3 asset grid -->
+    <!-- Row 1 -->
+    <rect class="mark-primary" x="80" y="112" width="26" height="26" rx="6"/>
+    <rect class="mark-primary" x="114" y="112" width="26" height="26" rx="6"/>
+    <rect class="mark-primary" x="148" y="112" width="28" height="26" rx="6"/>
+
+    <!-- Row 2 -->
+    <rect class="mark-primary" x="80" y="146" width="26" height="26" rx="6"/>
+    <rect class="mark-primary" x="114" y="146" width="26" height="26" rx="6"/>
+    <rect class="mark-primary" x="148" y="146" width="28" height="26" rx="6"/>
+  </g>
+</svg>

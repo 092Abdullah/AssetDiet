@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 96" width="480" height="96" fill="none">
+  <style>
+    .wordmark-text-lead {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-weight: 800;
+      font-size: 54px;
+      letter-spacing: -0.04em;
+      fill: #151719;
+    }
+    .wordmark-text-trail {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-weight: 800;
+      font-size: 54px;
+      letter-spacing: -0.04em;
+      fill: #C4F269;
+    }
+    .mark-primary { fill: #C4F269; }
+    .mark-secondary { fill: #C4F269; fill-opacity: 0.75; }
+    .mark-bg { fill: #151719; }
+    .mark-accent { fill: #8B83FF; }
+
+    @media (prefers-color-scheme: dark) {
+      .wordmark-text-lead { fill: #F6F7F2; }
+    }
+  </style>
+
+  <!-- Left Icon Lockup (64x64 at x=16, y=16) -->
+  <g transform="translate(16, 16)">
+    <rect class="mark-bg" width="64" height="64" rx="16"/>
+    <rect x="0.5" y="0.5" width="63" height="63" rx="15.5" stroke="#F6F7F2" stroke-opacity="0.1"/>
+
+    <!-- Scaled mark glyph -->
+    <g transform="translate(10, 10) scale(0.25)">
+      <!-- Incoming tiles -->
+      <rect class="mark-secondary" x="0" y="0" width="46" height="26" rx="7"/>
+      <rect class="mark-secondary" x="0" y="34" width="26" height="46" rx="7"/>
+      <rect class="mark-primary" x="34" y="34" width="36" height="36" rx="8"/>
+
+      <!-- A/D monogram core -->
+      <path class="mark-primary" d="M 80 0 H 130 C 155 0 176 21 176 46 V 74 C 176 80 171 85 165 85 H 142 C 136 85 131 80 131 74 V 46 C 131 38 124 31 116 31 H 80 C 74 31 70 26 70 20 V 11 C 70 5 74 0 80 0 Z"/>
+      <path class="mark-primary" d="M 80 50 H 108 C 114 50 119 55 119 61 V 85 C 119 91 114 96 108 96 H 80 C 74 96 70 91 70 85 V 61 C 70 55 74 50 80 50 Z"/>
+      <circle class="mark-accent" cx="52" cy="13" r="4.5"/>
+
+      <!-- Aligned outgoing grid -->
+      <rect class="mark-primary" x="80" y="112" width="26" height="26" rx="6"/>
+      <rect class="mark-primary" x="114" y="112" width="26" height="26" rx="6"/>
+      <rect class="mark-primary" x="148" y="112" width="28" height="26" rx="6"/>
+      <rect class="mark-primary" x="80" y="146" width="26" height="26" rx="6"/>
+      <rect class="mark-primary" x="114" y="146" width="26" height="26" rx="6"/>
+      <rect class="mark-primary" x="148" y="146" width="28" height="26" rx="6"/>
+    </g>
+  </g>
+
+  <!-- Typography -->
+  <text x="96" y="67" class="wordmark-text-lead">Asset</text>
+  <text x="248" y="67" class="wordmark-text-trail">Diet</text>
+</svg>

@@ -248,9 +248,11 @@ export function planClientSetup(
 /**
  * Apply a configuration proposal safely with backup and readback validation.
  */
-export async function applyProposal(
-  proposal: SetupProposal,
-): Promise<{ success: boolean; backupPath?: string | undefined; error?: string | undefined }> {
+export async function applyProposal(proposal: SetupProposal): Promise<{
+  success: boolean;
+  backupPath?: string | undefined;
+  error?: string | undefined;
+}> {
   if (proposal.action === "skip") {
     return { success: true };
   }

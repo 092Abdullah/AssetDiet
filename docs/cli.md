@@ -1,27 +1,39 @@
 # CLI Reference
 
-AssetDiet provides a unified command-line tool accessible as either `assetdiet` (when installed globally) or via `npx -y assetdiet-mcp@latest <command>`.
+AssetDiet provides a unified command-line tool accessible directly via `node packages/assetdiet-mcp/dist/cli.js`, globally as `assetdiet` (once installed), or via `npx assetdiet-mcp <command>`.
 
 ## Global Overview
 
 ```
 Usage: assetdiet [options] [command]
 
-Full-repository asset intelligence, optimization and MCP server
+AssetDiet: Full-repository asset intelligence, optimization and MCP server for
+AI coding assistants
 
 Options:
-  -v, --version           Output the current version
-  -h, --help              Display help for command
+  -V, --version                    output the version number
+  -h, --help                       display help for command
 
 Commands:
-  setup [options]         Detect and configure MCP coding assistants
-  doctor [options]        Diagnose environment, optional tools, and integrations
-  uninstall [options]     Safely remove AssetDiet from coding assistant configs
-  scan [options] [path]   Inventory assets and print metadata
-  audit [options] [path]  Find optimization opportunities (read-only)
-  optimize [options] [path] Optimize repository assets with rollback protection
-  restore [options] [path] Restore assets from a previous optimization run
-  mcp                     Run the Model Context Protocol stdio server
+  setup [options]                  Configure AssetDiet MCP integration for
+                                   Cursor, Claude Desktop, Claude Code,
+                                   Windsurf, or Codex
+  doctor [options]                 Run health checks on installed engines,
+                                   dependencies, and coding assistant
+                                   configurations
+  uninstall [options]              Safely remove AssetDiet MCP server
+                                   registrations from coding assistant configs
+  mcp                              Launch the stdio Model Context Protocol
+                                   (MCP) server for AI coding assistants
+  scan [options] [targetPath]      Inventory repository assets and extract
+                                   metadata + content hashes
+  audit [options] [targetPath]     Audit repository assets for optimization
+                                   opportunities (read-only)
+  optimize [options] [targetPath]  Run optimization plan on repository assets
+                                   with rollback safety
+  restore [options]                Restore assets from a previous optimization
+                                   run
+  help [command]                   display help for command
 ```
 
 ---
@@ -30,7 +42,7 @@ Commands:
 
 ### `assetdiet setup`
 
-Interactively detect installed AI coding assistants and add the AssetDiet MCP server registration.
+Automatically detect installed AI coding assistants and configure AssetDiet as a registered MCP server.
 
 ```bash
 assetdiet setup [options]
@@ -38,24 +50,24 @@ assetdiet setup [options]
 
 #### Options:
 
-- `-d, --dry-run`: Preview configuration changes without writing to disk.
-- `-c, --client <name>`: Target a specific client (`cursor`, `claude-desktop`, `claude-code`, `windsurf`, `codex`).
-- `-y, --yes`: Apply proposed non-destructive changes without interactive prompting.
-- `-j, --json`: Print results as structured JSON.
-- `-h, --help`: Display help for setup.
+- `-c, --client <client>`: Target client (`cursor`, `claude-desktop`, `claude-code`, `windsurf`, `codex`, `all`). Default: `all`.
+- `--project [dir]`: Configure project-level MCP settings instead of global/user settings.
+- `--dry-run`: Show proposed configuration changes without writing files.
+- `-y, --yes`: Automatically confirm and apply proposed non-destructive configuration changes.
+- `--json`: Output results as structured JSON.
 
-#### Behavior:
+#### Safety Guarantees:
 
 - Never removes or overwrites existing servers configured by the user.
 - Creates a timestamped `.bak` backup copy of every file before modifying it.
 - Uses exact version pinning (`assetdiet-mcp@<version>`) rather than mutable `latest`.
-- Validates the resulting JSON before completing.
+- Reads back the written configuration to verify valid JSON formatting.
 
 ---
 
 ### `assetdiet doctor`
 
-Inspect system readiness, runtime engines, optional CLI tools, and detected MCP client configurations.
+Inspect system readiness, engine capabilities, optional host tools, and detected MCP client configurations.
 
 ```bash
 assetdiet doctor [options]
@@ -63,16 +75,16 @@ assetdiet doctor [options]
 
 #### Options:
 
-- `-j, --json`: Output diagnostics as machine-readable JSON.
+- `--json`: Output diagnostic report as machine-readable JSON.
 - `-h, --help`: Display help for doctor.
 
 #### Health Checks Performed:
 
-- **Node.js runtime**: Verifies `>= 20.0.0`.
-- **Sharp / libvips**: Verifies native image decoding, resizing, and encoding capabilities.
-- **SVGO**: Verifies SVG parse and optimization capabilities.
-- **FFmpeg / FFprobe**: Checks system PATH for video transcoding and duration extraction.
-- **glTF-Transform**: Verifies 3D mesh analysis, deduplication, and optimization engines.
+- **Node.js Runtime**: Verifies `>= 20.0.0`.
+- **Sharp Image Engine**: Verifies native image decoding, resizing, and encoding capabilities via libvips.
+- **SVGO Vector Engine**: Verifies SVG parse and optimization capabilities.
+- **FFmpeg / FFprobe**: Checks system `PATH` for video transcoding and duration extraction. Safely skipped if absent.
+- **glTF-Transform 3D Engine**: Verifies 3D mesh analysis, deduplication, and optimization engines.
 - **Font Scanner**: Verifies font header parsing and duplicate detection.
 - **Client Configuration Checks**: Safe read-only inspection of detected client configs.
 
@@ -88,14 +100,13 @@ assetdiet uninstall [options]
 
 #### Options:
 
-- `-c, --client <name>`: Only remove registration from a specific client.
-- `-d, --dry-run`: Preview removals without modifying configuration files.
-- `-y, --yes`: Confirm removal without interactive prompt.
-- `-j, --json`: Output results as JSON.
+- `-c, --client <client>`: Target client (`cursor`, `claude-desktop`, `claude-code`, `windsurf`, `codex`, `all`). Default: `all`.
+- `-y, --yes`: Automatically confirm removal.
+- `--json`: Output results as structured JSON.
 
 #### Behavior:
 
-- Removes **only** the `assetdiet` key from `mcpServers`. All other server configurations remain completely intact.
+- Removes **only** the `assetdiet` key from `mcpServers`. All other server configurations remain completely untouched.
 - Preserves configuration backups (`.bak`).
 
 ---
@@ -105,13 +116,12 @@ assetdiet uninstall [options]
 Walk a directory tree, inventory all supported assets, extract dimensions, MIME types, byte sizes, and calculate SHA-256 hashes.
 
 ```bash
-assetdiet scan [path] [options]
+assetdiet scan [options] [targetPath]
 ```
 
 #### Options:
 
-- `-j, --json`: Print full inventory in JSON format.
-- `-t, --type <type>`: Filter assets by type (`image`, `svg`, `video`, `model3d`, `font`).
+- `--json`: Print full inventory in JSON format.
 - `-h, --help`: Display help.
 
 #### Example:
@@ -124,20 +134,20 @@ assetdiet scan ./public
 
 ### `assetdiet audit`
 
-Perform a **strictly read-only** audit of repository assets to identify optimization candidates and calculate potential savings.
+Perform a **strictly read-only** audit of repository assets to identify optimization opportunities, compute potential byte savings, and detect duplicate groups.
 
 ```bash
-assetdiet audit [path] [options]
+assetdiet audit [options] [targetPath]
 ```
 
 #### Options:
 
-- `-p, --policy <policy>`: Optimization policy (`safe`, `balanced`, `aggressive`). Default: `safe`.
-- `-j, --json`: Output audit findings as JSON.
+- `-p, --policy <policy>`: Policy level (`audit`, `safe`, `balanced`, `aggressive`). Default: `safe`.
+- `--json`: Output audit findings and duplicate groups as JSON.
 - `-h, --help`: Display help.
 
 > [!NOTE]
-> `audit` never touches or modifies any repository files. It simulates optimizations in memory to compute realistic savings.
+> `audit` never modifies repository files. It simulates optimizations in memory to compute realistic byte savings.
 
 ---
 
@@ -146,23 +156,21 @@ assetdiet audit [path] [options]
 Execute an optimization pass across eligible assets with atomic file replacement and automatic transaction journaling.
 
 ```bash
-assetdiet optimize [path] [options]
+assetdiet optimize [options] [targetPath]
 ```
 
 #### Options:
 
-- `-p, --policy <policy>`: Optimization policy (`safe`, `balanced`, `aggressive`). Default: `safe`.
-- `-d, --dry-run`: Preview planned optimizations and savings without writing changes.
-- `-t, --type <type>`: Restrict optimizations to specific asset category (`image`, `svg`, `video`, `model3d`).
-- `-o, --output-format <format>`: Generate a report (`markdown`, `json`, `html`). Default: `markdown`.
+- `-p, --policy <policy>`: Policy level (`safe`, `balanced`, `aggressive`). Default: `safe`.
+- `--dry-run`: Simulate changes without writing files to disk.
 - `-h, --help`: Display help.
 
-#### Behavior:
+#### Execution Behavior:
 
 1. Backs up original files to `.assetdiet/backups/<runId>/`.
 2. Records an atomic transaction journal entry before each file modification.
-3. Optimizes files into temporary files, validates output integrity, then atomically swaps them.
-4. Generates a summary report with run ID for instant reversibility.
+3. Optimizes files into temporary files (`.tmp.<id>`), validates output integrity, then atomically swaps them via `fs.rename`.
+4. Outputs the unique `Run ID` and exact rollback command.
 
 ---
 
@@ -171,28 +179,29 @@ assetdiet optimize [path] [options]
 Rollback a previous optimization run to restore byte-for-byte original files.
 
 ```bash
-assetdiet restore [path] [options]
+assetdiet restore [options]
 ```
 
 #### Options:
 
-- `-r, --run <runId>`: Specific run ID to restore. If omitted, prompts to restore the most recent run.
+- `-r, --run <runId>`: _(Required)_ Specific run ID to restore.
+- `-p, --path <targetPath>`: Workspace root path. Default: `.`.
 - `-h, --help`: Display help.
 
 #### Example:
 
 ```bash
-assetdiet restore ./my-project --run 2026-10-15T12-30-00-abc123
+assetdiet restore --run mv9uyorf-ctxnoq
 ```
 
 ---
 
 ### `assetdiet mcp`
 
-Launch the Model Context Protocol server over stdio.
+Launch the Model Context Protocol stdio server for AI coding assistants.
 
 ```bash
 assetdiet mcp
 ```
 
-This command communicates with MCP clients using JSON-RPC over standard input/output. Diagnostic messages and logs are written exclusively to `stderr` to ensure the stdio transport stream remains uncorrupted.
+This command communicates with MCP clients using JSON-RPC 2.0 over standard input/output. Diagnostic messages and logs are written exclusively to `stderr` to ensure the stdio transport stream remains uncorrupted.

@@ -1,216 +1,199 @@
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/assetdiet-hero.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/assetdiet-hero.svg" />
+  <img src="docs/assets/assetdiet-hero.svg" alt="AssetDiet — Local-first asset intelligence &amp; optimization for AI coding assistants" width="960" />
+</picture>
+
+<br /><br />
+
 # AssetDiet
 
-Full-repository asset intelligence, optimization, and Model Context Protocol (MCP) server for AI coding assistants and developers.
+**Local-first CLI and MCP server for auditing, optimizing and safely managing images, SVGs, videos and 3D assets in codebases.**
 
 [![CI](https://github.com/092Abdullah/AssetDiet/actions/workflows/ci.yml/badge.svg)](https://github.com/092Abdullah/AssetDiet/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/assetdiet-mcp.svg)](https://www.npmjs.com/package/assetdiet-mcp)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](package.json)
+[![License: MIT](https://img.shields.io/badge/License-MIT-C4F269.svg?labelColor=151719)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.0.0-F6F7F2.svg?labelColor=151719)](package.json)
+[![MCP Tools](https://img.shields.io/badge/MCP-16_Tools-8B83FF.svg?labelColor=151719)](docs/mcp-tools.md)
+[![Privacy](https://img.shields.io/badge/Privacy-100%25_Local-C4F269.svg?labelColor=151719)](docs/security.md)
+
+[Quick Start](#-quick-start-verified-source-install) · [Demo](#-terminal-demo) · [AI Prompt](#-using-with-ai-coding-assistants) · [Supported Formats](#-supported-asset-formats--engines) · [Workflow](#-how-assetdiet-works) · [Policies & Safety](#-policies-safety--rollback-engine) · [Documentation](#-documentation)
+
+<br />
+
+<a href="#-terminal-demo">
+  <img src="docs/assets/assetdiet-demo.gif" alt="AssetDiet terminal session demonstrating scan, audit with duplicate detection, optimization, and rollback" width="880" />
+</a>
+
+</div>
 
 ---
 
-## The Problem
+## 💡 The Problem AssetDiet Solves
 
-Web and mobile applications routinely accumulate multi-megabyte images, unoptimized SVG icons with unused editor metadata, heavy background videos, and uncompressed 3D models. AI coding assistants generate features and UI code quickly, but treat binary assets as opaque files. They lack native capabilities to inspect metadata, safely compress assets, verify visual fidelity, update code import references, or restore files if an optimization fails.
+Modern web and mobile repositories routinely accumulate bloated assets: uncompressed raster images, SVG icons cluttered with vector-editor metadata, duplicate branding files, and heavy 3D models. AI coding assistants generate frontend features and UI components quickly, but treat repository media as opaque blobs. Assistants cannot natively inspect asset dimensions, run lossless compression, verify decodability, or safely restore modified files if an optimization fails.
 
-AssetDiet equips AI coding assistants and developers with local, safety-guaranteed tools to inventory repository media, find high-value compression opportunities, optimize files atomically, independently verify decodability, and reverse changes byte-for-byte at any time.
+**AssetDiet** bridges this gap. It provides a local-first CLI and a Model Context Protocol (MCP) server that empowers AI assistants (Cursor, Claude Desktop, Claude Code, Windsurf, Codex) and developers to inventory media, find high-value compression opportunities, optimize files atomically, and reverse any operation byte-for-byte.
+
+> _“Many heavy assets go in. Lean, verified assets come out.”_
 
 ---
 
-## Quick Start: Guided Assistant Setup
+## ⚡ Quick Start: Verified Source Install
 
-Configure AssetDiet in your AI coding assistant with one command:
+> [!NOTE]
+> Until `assetdiet-mcp` is published to the public npm registry, source installation is the tested, verified method to use AssetDiet. (Instructions for post-publication `npx` commands are documented in the [Installation Guide](docs/installation.md)).
+
+### 1. Clone and Build
 
 ```bash
-npx -y assetdiet-mcp@latest setup
+git clone https://github.com/092Abdullah/AssetDiet.git
+cd AssetDiet
+pnpm install
+pnpm build
+pnpm test
 ```
 
-The interactive setup wizard:
+### 2. Verify Your System Environment
 
-1. Detects installed assistants: **Cursor**, **Claude Desktop**, **Claude Code**, **Windsurf**, and **Codex**.
-2. Previews proposed JSON configuration changes for your review.
-3. Automatically creates timestamped `.bak` backup copies before modifying any existing configuration.
-4. Preserves all existing MCP servers and unrelated user settings.
-5. Registers AssetDiet using exact package version pinning:
-   ```json
-   {
-     "mcpServers": {
-       "assetdiet": {
-         "command": "npx",
-         "args": ["--yes", "assetdiet-mcp@0.1.0", "mcp"]
-       }
-     }
-   }
+Run the built diagnostic doctor to inspect engine readiness and installed assistants:
+
+```bash
+node packages/assetdiet-mcp/dist/cli.js doctor
+```
+
+### 3. Run a Read-Only Codebase Audit
+
+Simulate potential byte savings across your project without modifying any files:
+
+```bash
+node packages/assetdiet-mcp/dist/cli.js audit /path/to/your/project --policy safe
+```
+
+### 4. Configure Your AI Coding Assistant
+
+Automatically detect and register AssetDiet with **Cursor**, **Claude Desktop**, **Claude Code**, **Windsurf**, or **Codex**:
+
+```bash
+# Preview proposed changes (dry-run)
+node packages/assetdiet-mcp/dist/cli.js setup --dry-run
+
+# Apply configuration with automated backup (.bak) creation
+node packages/assetdiet-mcp/dist/cli.js setup --yes
+```
+
+---
+
+## 🤖 Using with AI Coding Assistants
+
+Once registered, your AI coding assistant has direct access to AssetDiet's 16 discrete MCP tools.
+
+### Realistic Assistant Prompt
+
+> _"Run an asset audit across this repository under the safe policy. Tell me which images, SVGs, or 3D models have high potential savings, flag any duplicate files, and prepare an optimization plan before applying changes."_
+
+### What the Assistant Does
+
+1. **Discovery & Estimation**: The assistant calls `assetdiet_audit` in read-only mode to scan the workspace, compute SHA-256 hashes, group byte-identical duplicates, and calculate savings.
+2. **Review & Approval**: The assistant presents a concise proposal:
    ```
-6. Validates the modified configuration by reading it back from disk.
-
-To preview changes non-destructively:
-
-```bash
-npx -y assetdiet-mcp@latest setup --dry-run
-```
-
----
-
-## Using with AI Coding Assistants
-
-Once configured, your AI assistant can directly invoke AssetDiet's 16 discrete MCP tools.
-
-### Example Prompt
-
-> _"Run an asset audit on this project, identify which images and 3D models can be safely optimized, and estimate potential byte savings."_
-
-### Assistant Execution Flow
-
-1. The assistant calls `assetdiet_audit` to analyze the workspace without modifying any files.
-2. The assistant summarizes findings:
+   AssetDiet Audit Proposal:
+   • public/images/hero-banner.png (1.8 MB) -> 3.9 KB (-99.8%) [Exact duplicate of public/images/hero-banner-copy.png]
+   • public/icons/badge.svg (0.9 KB) -> 0.3 KB (-63.3%) [Editor metadata stripped]
+   Total estimated savings: 3,750.1 KB across 3 assets.
    ```
-   Asset Audit Summary:
-   - public/hero-banner.png: 3.8 MB -> Est. 1.1 MB (71% savings) via WebP conversion
-   - public/icons/logo.svg: 84 KB -> Est. 26 KB (69% savings) via SVG cleanup
-   - public/models/robot.glb: 14.2 MB -> Est. 5.1 MB (64% savings) via mesh deduplication
-   Total potential savings: 11.8 MB (65%)
-   ```
-3. When you confirm, the assistant calls `assetdiet_optimize`, which creates a backup in `.assetdiet/backups/<runId>/`, applies the optimizations, independently validates the outputs, and records the transaction.
-4. If format migration is needed (`.png` → `.webp`), the assistant calls `assetdiet_migrate_references` to update source code imports across TSX, JSX, HTML, and CSS.
+3. **Atomic Modification**: Upon your approval, the assistant calls `assetdiet_optimize`, which creates an archive in `.assetdiet/backups/<runId>/`, applies transformations into temporary files, verifies output integrity, and atomically swaps them.
+4. **Instant Rollback**: If you ever want to revert, prompt your assistant: _"Undo the last asset optimization pass,"_ and it calls `assetdiet_restore` to restore the exact original byte state.
 
 ---
 
-## Quick CLI Usage
+## 📦 Supported Asset Formats & Engines
 
-AssetDiet can also be run directly from the command line without an assistant:
+AssetDiet delegates optimization to industry-standard, battle-tested native engines and WebAssembly parsers:
 
-```bash
-# Check environment and engine readiness
-npx -y assetdiet-mcp@latest doctor
-
-# Audit assets in read-only mode (no files are modified)
-npx -y assetdiet-mcp@latest audit . --policy safe
-
-# Optimize eligible assets under safe policy
-npx -y assetdiet-mcp@latest optimize . --policy safe
-
-# Preview optimizations without writing changes
-npx -y assetdiet-mcp@latest optimize . --policy safe --dry-run
-
-# Restore original files from any run
-npx -y assetdiet-mcp@latest restore
-```
-
-To install the CLI globally:
-
-```bash
-npm install -g assetdiet-mcp
-assetdiet --help
-```
+| Media Category      | Supported Formats                                          | Primary Engine       | Execution Mode            | Capabilities                                                                                                         |
+| ------------------- | ---------------------------------------------------------- | -------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Raster Images**   | `.png`, `.jpg`, `.jpeg`, `.webp`, `.avif`, `.tiff`, `.gif` | **Sharp (libvips)**  | Embedded Native           | Metadata stripping, lossless compression, palette quantization, alpha channel preservation.                          |
+| **Vector Graphics** | `.svg`                                                     | **SVGO**             | Embedded Library          | XML/comment stripping, unused group cleanup, path precision rounding, `viewBox` preservation.                        |
+| **3D Models**       | `.glb`, `.gltf`                                            | **glTF-Transform**   | Embedded Library          | Coincident vertex welding, mesh deduplication, unused material/sampler pruning.                                      |
+| **Video**           | `.mp4`, `.webm`                                            | **FFmpeg / FFprobe** | Optional Host Engine      | Direct subprocess execution, H.264/VP9 transcoding, atomic temporary swaps. Safely skipped if not in `PATH`.         |
+| **Fonts**           | `.woff2`, `.woff`, `.ttf`, `.otf`                          | **Font Scanner**     | Production / Experimental | Metadata extraction and duplicate family detection are production-ready. Character-level subsetting is experimental. |
 
 ---
 
-## Supported Formats & Processing Engines
+## 🔄 How AssetDiet Works
 
-| Format Category     | File Extensions                                            | Engine           | Status                    | Applied Transformations                                                                                                                     |
-| ------------------- | ---------------------------------------------------------- | ---------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Raster Images**   | `.png`, `.jpg`, `.jpeg`, `.webp`, `.avif`, `.tiff`, `.gif` | Sharp (libvips)  | Tested / Production-Ready | Metadata stripping, lossless/lossy compression, dimension preservation, alpha transparency preservation.                                    |
-| **Vector Graphics** | `.svg`                                                     | SVGO             | Tested / Production-Ready | XML cleanup, editor metadata removal, comment stripping, `viewBox` and ID preservation.                                                     |
-| **3D Models**       | `.glb`, `.gltf`                                            | glTF-Transform   | Tested / Production-Ready | Coincident vertex welding, mesh deduplication, unused material/sampler pruning, texture re-encoding.                                        |
-| **Video**           | `.mp4`, `.webm`                                            | FFmpeg / FFprobe | Optional Host Engine      | Direct subprocess execution, H.264/VP9 transcoding, atomic temporary file swaps. Requires FFmpeg on host `PATH`. Safely skipped if missing. |
-| **Fonts**           | `.woff2`, `.woff`, `.ttf`, `.otf`                          | Font Scanner     | Partial / Experimental    | Font metadata extraction and duplicate family detection is production-ready. Character-level font subsetting is experimental.               |
+The optimization pipeline moves through four disciplined stages:
+
+<div align="center">
+  <img src="docs/assets/assetdiet-workflow.svg" alt="AssetDiet 4-stage pipeline: Scan & Graph, Policy & Plan, Native Engines, Safety & Rollback" width="960" />
+</div>
+
+1. **Scan & Graph**: Traverses the directory tree, computes SHA-256 content hashes, indexes metadata, and identifies duplicate groups.
+2. **Policy & Plan**: Evaluates assets against your selected policy (`safe`, `balanced`, or `aggressive`), runs dry-run simulations, and writes an atomic journal entry.
+3. **Engine Optimization**: Dispatches each file to its specialized engine. Work is written to temporary swap files (`.tmp.<random>`) rather than in-place.
+4. **Verification & Commit**: Validates decodability and dimensional parity. On pass, the temporary file is atomically renamed (`fs.rename`). On failure, the temporary file is discarded, leaving the original untouched.
 
 ---
 
-## Optimization Policies
+## 📊 Optimization & Validation Report Preview
 
-AssetDiet uses explicit policies to govern optimization intensity:
+Every run produces an audit and validation report with byte-level precision:
+
+<div align="center">
+  <img src="docs/assets/report-preview.png" alt="Real AssetDiet Run Report showing scanned assets, duplicate groups, byte savings, and rollback location" width="880" />
+</div>
+
+---
+
+## 🛡️ Policies, Safety & Rollback Engine
+
+### Optimization Policies
 
 - **`audit`**: Strictly read-only mode. Computes realistic savings by analyzing file structures and running in-memory simulations without touching files on disk.
 - **`safe`** _(Default)_: Strictly lossless or visually indistinguishable optimizations. Preserves exact file formats, dimensions, transparency, and audio streams. Ideal for automated CI pipelines and production codebases.
-- **`balanced`**: Perceptually lossless transformations with modern format opportunities (WebP/AVIF at quality 85, video CRF 23). Best for web applications where transfer size directly impacts user experience.
+- **`balanced`**: Perceptually lossless transformations with modern format opportunities (WebP/AVIF quality 85, video CRF 23). Best for web applications where transfer size directly impacts user experience.
 - **`aggressive`**: Maximum byte reduction for mobile bundles or bandwidth-constrained deployments (quality 75, video CRF 28, geometry reduction).
 
----
+### Rollback Engine
 
-## Validation, Rollback & Safety Engine
+Every file modification in AssetDiet is backed by multi-layered recovery guarantees:
 
-Every file modification in AssetDiet is governed by safety mechanisms:
-
-1. **Pre-Optimization Backups**: Before any asset is modified, an exact byte-for-byte copy is archived in `.assetdiet/backups/<runId>/`.
-2. **Atomic Write-Ahead Journal**: Operations are recorded in `.assetdiet/journal.json`. If a run is interrupted by power failure or user cancellation, the journal retains state for clean restoration.
-3. **Atomic Replacements**: Optimizers write outputs to temporary files (`.tmp.<random>`), verify their integrity, and perform an atomic filesystem rename (`fs.rename`). Files are never modified in-place unsafely.
-4. **Independent Quality Gates**: Validates that optimized files decode without error, preserve dimensional parity, maintain alpha transparency channels, and preserve audio tracks before replacing originals.
-5. **Byte-for-Byte Rollback**: Run `assetdiet restore --run <runId>` to revert any committed or interrupted run back to its original SHA-256 state.
-
----
-
-## MCP Assistant Setup & Manual Configuration
-
-For automatic configuration, run:
-
-```bash
-npx -y assetdiet-mcp@latest setup
-```
-
-To configure clients manually, add the following to your assistant's MCP configuration file (replace `0.1.0` with the installed version):
-
-```json
-{
-  "mcpServers": {
-    "assetdiet": {
-      "command": "npx",
-      "args": ["--yes", "assetdiet-mcp@0.1.0", "mcp"]
-    }
-  }
-}
-```
-
-Configuration file paths by client:
-
-- **Cursor**: `.cursor/mcp.json` (project) or Cursor Settings → Features → MCP
-- **Claude Desktop**:
-  - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-  - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-  - Linux: `~/.config/Claude/claude_desktop_config.json`
-- **Claude Code**: `~/.claude.json`
-- **Windsurf**: `~/.codeium/windsurf/mcp_config.json`
-- **Codex**: `~/.codex/config.json`
-
-For full options and scopes, see the [Installation Guide](docs/installation.md).
+1. **Pre-Optimization Backups**: Before any asset is touched, a byte-for-byte copy is stored in `.assetdiet/backups/<runId>/`.
+2. **Write-Ahead Journal**: State transitions are journaled in `.assetdiet/runs/<runId>.json`. If a run is interrupted by power loss or user cancellation, state is preserved.
+3. **Atomic Replacements**: Temporary files are validated before the atomic filesystem swap. Files are never overwritten partially.
+4. **One-Command Restore**:
+   ```bash
+   node packages/assetdiet-mcp/dist/cli.js restore --run <runId>
+   ```
 
 ---
 
-## System Requirements
+## 🔒 Security, Privacy & Local Execution
 
-- **Runtime**: Node.js `>= 20.0.0`
-- **Package Manager**: npm `>= 9.0.0` or pnpm `>= 9.0.0`
-- **Operating Systems**: macOS (`arm64`, `x64`), Linux (`x64`, `arm64`), Windows 10 / 11 (`x64`)
-- **Optional Tools**:
-  - `ffmpeg` and `ffprobe` (required only for video transcoding and poster generation). If not present on your system `PATH`, AssetDiet safely skips video files without failing the run. Run `assetdiet doctor` to verify availability.
+- **100% Local Execution**: All asset analysis and compression runs locally on your machine using embedded native libraries and WebAssembly. AssetDiet never transmits your media files to any remote server, cloud bucket, or external API.
+- **Zero Telemetry**: Contains no analytics tracking, phone-home beacons, or usage telemetry.
+- **Safe Assistant Integration**: Only text metadata (file paths, dimensions, byte sizes, savings) is shared over local stdio with your AI assistant. Assistant configuration files are backed up to `.bak` files prior to modification.
 
 ---
 
-## Security, Privacy & Local Execution
+## 📚 Documentation
 
-- **100% Local Processing**: All asset analysis and compression runs locally on your machine using embedded native libraries and WebAssembly. AssetDiet never uploads your media files to any external server, cloud bucket, or remote API.
-- **Zero Telemetry**: AssetDiet contains no analytics tracking, phone-home mechanisms, or telemetry beacons.
-- **AI Assistant Context**: When an AI coding assistant runs AssetDiet MCP tools, tool results (file paths, sizes, and savings metadata) are returned to the assistant over local stdio. Your assistant may transmit these text outputs to its model provider (such as Anthropic, OpenAI, or Google) according to that assistant's privacy configuration.
-- **Non-Destructive Operations**: Backups are generated prior to file modifications, and assistant configuration files are backed up to `.bak` files prior to editing.
+Detailed guides and references:
 
----
-
-## Documentation Links
-
-- [Installation Guide](docs/installation.md) - Guided setup, global install, manual MCP configuration, and platform guides.
-- [CLI Reference](docs/cli.md) - Complete documentation for `setup`, `doctor`, `uninstall`, `scan`, `audit`, `optimize`, `restore`, and `mcp`.
-- [MCP Tools Reference](docs/mcp-tools.md) - Input schemas and specifications for all 16 Model Context Protocol tools.
-- [Configuration & Policies](docs/configuration.md) - Detailed guide to `safe`, `balanced`, and `aggressive` profiles, ignore rules, and config files.
-- [Architecture](docs/architecture.md) - Monorepo architecture, public package bundling, and stdio isolation model.
-- [Security Policy](SECURITY.md) - Vulnerability reporting and security considerations.
-- [Troubleshooting](docs/troubleshooting.md) - Common issues, platform tips, and diagnostic procedures.
-- [Development Guide](docs/development.md) - Monorepo development, testing, and building from source.
-- [Contributing](CONTRIBUTING.md) - Code style, PR guidelines, and testing requirements.
-- [Changelog](CHANGELOG.md) - Release history and version updates.
+- [Installation Guide](docs/installation.md) — Source installation, global install, manual MCP configuration, and platform guides.
+- [CLI Reference](docs/cli.md) — Comprehensive command reference for `setup`, `doctor`, `uninstall`, `scan`, `audit`, `optimize`, `restore`, and `mcp`.
+- [MCP Tools Reference](docs/mcp-tools.md) — Input schemas and specifications for all 16 Model Context Protocol tools.
+- [Configuration & Policies](docs/configuration.md) — Detailed guide to `safe`, `balanced`, and `aggressive` profiles, ignore rules, and `assetdiet.config.json`.
+- [Architecture](docs/architecture.md) — Monorepo design, self-contained distribution package, and stdio isolation model.
+- [Troubleshooting & FAQ](docs/troubleshooting.md) — Common diagnostic procedures and solutions.
+- [Contributing Guide](CONTRIBUTING.md) — How to contribute, run tests, and submit pull requests.
+- [Security Policy](SECURITY.md) — Vulnerability disclosure policy and reporting process.
+- [Changelog](CHANGELOG.md) — Release history and version updates.
 
 ---
 
-## License
+## 📄 License
 
-[MIT](LICENSE) © 2026 AssetDiet Contributors
+[MIT](LICENSE) © 2026 [AssetDiet Contributors](https://github.com/092Abdullah/AssetDiet)

@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 340" width="1080" height="340" fill="none">
+  <defs>
+    <linearGradient id="wf-card-stroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F6F7F2" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#F6F7F2" stop-opacity="0.04"/>
+    </linearGradient>
+    <linearGradient id="arrow-grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#C4F269" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#C4F269"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .wf-sans {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .wf-mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+  </style>
+
+  <!-- Background Base -->
+  <rect width="1080" height="340" rx="16" fill="#151719"/>
+  <rect x="1" y="1" width="1078" height="338" rx="15" stroke="url(#wf-card-stroke)" stroke-width="2"/>
+
+  <!-- Workflow Title Header -->
+  <g transform="translate(48, 36)">
+    <text class="wf-sans" font-size="12" font-weight="700" fill="#C4F269" letter-spacing="0.12em">PIPELINE ARCHITECTURE</text>
+    <text y="24" class="wf-sans" font-size="20" font-weight="700" fill="#F6F7F2">
+      How AssetDiet Works: From Raw Codebase to Verified Delivery
+    </text>
+  </g>
+
+  <!-- Flow Steps (4 Columns) -->
+  <!-- STEP 1: SCAN & INVENTORY -->
+  <g transform="translate(48, 88)">
+    <rect width="216" height="216" rx="12" fill="#191C1E" stroke="#F6F7F2" stroke-opacity="0.08"/>
+    <!-- Step Badge -->
+    <rect x="16" y="16" width="28" height="20" rx="4" fill="#C4F269" fill-opacity="0.15"/>
+    <text x="30" y="30" class="wf-mono" font-size="11" font-weight="700" fill="#C4F269" text-anchor="middle">01</text>
+    <text x="52" y="31" class="wf-sans" font-size="14" font-weight="700" fill="#F6F7F2">Scan &amp; Graph</text>
+
+    <!-- Content Items -->
+    <text x="16" y="68" class="wf-sans" font-size="12" font-weight="600" fill="#C4F269">• Repository Walker</text>
+    <text x="16" y="86" class="wf-sans" font-size="11" fill="#F6F7F2" fill-opacity="0.6">Extracts format metadata</text>
+
+    <text x="16" y="112" class="wf-sans" font-size="12" font-weight="600" fill="#C4F269">• SHA-256 Hashes</text>
+    <text x="16" y="130" class="wf-sans" font-size="11" fill="#F6F7F2" fill-opacity="0.6">Byte-exact asset indexing</text>
+
+    <text x="16" y="156" class="wf-sans" font-size="12" font-weight="600" fill="#C4F269">• Duplicate Detection</text>
+    <text x="16" y="174" class="wf-sans" font-size="11" fill="#F6F7F2" fill-opacity="0.6">Finds cloned/unused media</text>
+
+    <rect x="16" y="188" width="184" height="16" rx="4" fill="#131517"/>
+    <text x="108" y="200" class="wf-mono" font-size="9.5" fill="#8B83FF" text-anchor="middle">Fast glob + AST refs</text>
+  </g>
+
+  <!-- Connector 1 -> 2 -->
+  <g transform="translate(268, 186)">
+    <line x1="0" y1="0" x2="26" y2="0" stroke="#C4F269" stroke-width="2" stroke-dasharray="4 3"/>
+    <polygon points="26,-4 34,0 26,4" fill="#C4F269"/>
+  </g>
+
+  <!-- STEP 2: POLICY & PLAN -->
+  <g transform="translate(306, 88)">
+    <rect width="216" height="216" rx="12" fill="#191C1E" stroke="#F6F7F2" stroke-opacity="0.08"/>
+    <!-- Step Badge -->
+    <rect x="16" y="16" width="28" height="20" rx="4" fill="#C4F269" fill-opacity="0.15"/>
+    <text x="30" y="30" class="wf-mono" font-size="11" font-weight="700" fill="#C4F269" text-anchor="middle">02</text>
+    <text x="52" y="31" class="wf-sans" font-size="14" font-weight="700" fill="#F6F7F2">Policy &amp; Plan</text>
+
+    <!-- Content Items -->
+    <text x="16" y="68" class="wf-sans" font-size="12" font-weight="600" fill="#C4F269">• Safety Profiles</text>
+    <text x="16" y="86" class="wf-sans" font-size="11" fill="#F6F7F2" fill-opacity="0.6">Audit · Safe · Balanced</text>
+
+    <text x="16" y="112" class="wf-sans" font-size="12" font-weight="600" fill="#C4F269">• Dry-Run Simulation</text>
+    <text x="16" y="130" class="wf-sans" font-size="11" fill="#F6F7F2" fill-opacity="0.6">Computes real savings</text>
+
+    <text x="16" y="156" class="wf-sans" font-size="12" font-weight="600" fill="#C4F269">• Journal Ledger</text>
+    <text x="16" y="174" class="wf-sans" font-size="11" fill="#F6F7F2" fill-opacity="0.6">Write-ahead state logged</text>
+
+    <rect x="16" y="188" width="184" height="16" rx="4" fill="#131517"/>
+    <text x="108" y="200" class="wf-mono" font-size="9.5" fill="#C4F269" text-anchor="middle">Zero destructive surprises</text>
+  </g>
+
+  <!-- Connector 2 -> 3 -->
+  <g transform="translate(526, 186)">
+    <line x1="0" y1="0" x2="26" y2="0" stroke="#C4F269" stroke-width="2" stroke-dasharray="4 3"/>
+    <polygon points="26,-4 34,0 26,4" fill="#C4F269"/>
+  </g>
+
+  <!-- STEP 3: OPTIMIZE ENGINES -->
+  <g transform="translate(564, 88)">
+    <rect width="216" height="216" rx="12" fill="#191C1E" stroke="#C4F269" stroke-opacity="0.25"/>
+    <!-- Step Badge -->
+    <rect x="16" y="16" width="28" height="20" rx="4" fill="#C4F269"/>
+    <text x="30" y="30" class="wf-mono" font-size="11" font-weight="800" fill="#151719" text-anchor="middle">03</text>
+    <text x="52" y="31" class="wf-sans" font-size="14" font-weight="700" fill="#F6F7F2">Native Engines</text>
+
+    <!-- Content Items -->
+    <text x="16" y="68" class="wf-sans" font-size="12" font-weight="600" fill="#C4F269">• Sharp (libvips)</text>
+    <text x="16" y="86" class="wf-sans" font-size="11" fill="#F6F7F2" fill-opacity="0.6">PNG, JPEG, WebP, AVIF</text>
+
+    <text x="16" y="112" class="wf-sans" font-size="12" font-weight="600" fill="#C4F269">• SVGO Parser</text>
+    <text x="16" y="130" class="wf-sans" font-size="11" fill="#F6F7F2" fill-opacity="0.6">XML &amp; viewBox cleanup</text>
+
+    <text x="16" y="156" class="wf-sans" font-size="12" font-weight="600" fill="#C4F269">• glTF-Transform</text>
+    <text x="16" y="174" class="wf-sans" font-size="11" fill="#F6F7F2" fill-opacity="0.6">3D vertex deduplication</text>
+
+    <rect x="16" y="188" width="184" height="16" rx="4" fill="#131517"/>
+    <text x="108" y="200" class="wf-mono" font-size="9.5" fill="#C4F269" text-anchor="middle">+ FFmpeg host video</text>
+  </g>
+
+  <!-- Connector 3 -> 4 -->
+  <g transform="translate(784, 186)">
+    <line x1="0" y1="0" x2="26" y2="0" stroke="#C4F269" stroke-width="2" stroke-dasharray="4 3"/>
+    <polygon points="26,-4 34,0 26,4" fill="#C4F269"/>
+  </g>
+
+  <!-- STEP 4: VERIFY & RESTORE -->
+  <g transform="translate(822, 88)">
+    <rect width="210" height="216" rx="12" fill="#191C1E" stroke="#F6F7F2" stroke-opacity="0.08"/>
+    <!-- Step Badge -->
+    <rect x="16" y="16" width="28" height="20" rx="4" fill="#8B83FF" fill-opacity="0.2"/>
+    <text x="30" y="30" class="wf-mono" font-size="11" font-weight="700" fill="#8B83FF" text-anchor="middle">04</text>
+    <text x="52" y="31" class="wf-sans" font-size="14" font-weight="700" fill="#F6F7F2">Safety &amp; Rollback</text>
+
+    <!-- Content Items -->
+    <text x="16" y="68" class="wf-sans" font-size="12" font-weight="600" fill="#8B83FF">• Quality Gates</text>
+    <text x="16" y="86" class="wf-sans" font-size="11" fill="#F6F7F2" fill-opacity="0.6">Decode &amp; dimension checks</text>
+
+    <text x="16" y="112" class="wf-sans" font-size="12" font-weight="600" fill="#8B83FF">• Atomic Rename</text>
+    <text x="16" y="130" class="wf-sans" font-size="11" fill="#F6F7F2" fill-opacity="0.6">Writes to .tmp before swap</text>
+
+    <text x="16" y="156" class="wf-sans" font-size="12" font-weight="600" fill="#8B83FF">• 1-Command Undo</text>
+    <text x="16" y="174" class="wf-sans" font-size="11" fill="#F6F7F2" fill-opacity="0.6">assetdiet restore --run &lt;id&gt;</text>
+
+    <rect x="16" y="188" width="178" height="16" rx="4" fill="#131517"/>
+    <text x="105" y="200" class="wf-mono" font-size="9.5" fill="#8B83FF" text-anchor="middle">Byte-for-byte guarantees</text>
+  </g>
+</svg>
