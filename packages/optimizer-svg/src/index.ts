@@ -121,7 +121,14 @@ export async function optimizeSvg(
   }
 
   await fs.promises.mkdir(path.dirname(dest), { recursive: true });
-  await fs.promises.writeFile(dest, optimizedContent, "utf-8");
+  const tempPath = `${dest}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
+  await fs.promises.writeFile(tempPath, optimizedContent, "utf-8");
+  try {
+    await fs.promises.rename(tempPath, dest);
+  } catch {
+    await fs.promises.copyFile(tempPath, dest);
+    await fs.promises.unlink(tempPath).catch(() => {});
+  }
 
   const savedBytes = originalSizeBytes - optimizedSizeBytes;
   const savedPercentage = Number(

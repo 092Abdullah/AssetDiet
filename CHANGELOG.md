@@ -5,6 +5,18 @@ All notable changes to AssetDiet will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-10-16
+
+### Fixed
+
+- **EIO Crash on Optimize Exit**: Fixed `[Error: EIO: i/o error, close] { errno: -5, code: 'EIO', syscall: 'close' }` happening on process close after successful optimization runs. Switched image extraction and optimization from direct file path binding to in-memory buffers with `sharp.cache(false)` globally disabled, migrated file hashing from unclosed streams to clean `readFile`, wrapped all low-level file descriptor handles in `try/finally` blocks, and implemented atomic write-to-temp-then-rename semantics.
+- **Reference-Aware Duplicate Deduplication**: Resolved duplicate handling ambiguity under the `safe` policy. Exact byte duplicates with 0 code or markup references are now safely deduplicated (original backed up to `.assetdiet/backups/<runId>/` and unlinked), while duplicates that have active code references in project files are preserved and compressed in place to prevent broken imports.
+- **`--summary` Flag in Published Distribution**: Shipped `--summary` option for `assetdiet audit` in the distributed `assetdiet-mcp` CLI bundle, displaying a concise 4-5 line scorecard for rapid agent context and CI workflows.
+
+### Documentation
+
+- Updated CLI and configuration guides to document reference-aware duplicate handling, atomic swap guarantees, and rollback semantics.
+
 ---
 
 ## [0.1.0] - 2026-10-15

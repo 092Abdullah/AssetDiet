@@ -4,12 +4,16 @@
  */
 
 import sharp from "sharp";
+import fs from "node:fs";
 import type { AssetMetadata } from "@assetdiet/core";
+
+sharp.cache(false);
 
 export async function extractImageMetadata(
   filePath: string,
 ): Promise<AssetMetadata> {
-  const meta = await sharp(filePath).metadata();
+  const buf = await fs.promises.readFile(filePath);
+  const meta = await sharp(buf).metadata();
 
   return {
     type: "image",

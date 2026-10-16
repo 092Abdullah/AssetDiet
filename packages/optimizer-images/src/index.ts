@@ -13,6 +13,8 @@ import fs from "node:fs";
 import path from "node:path";
 import type { OptimizationPolicy } from "@assetdiet/core";
 
+sharp.cache(false);
+
 export interface ImageOptimizeOptions {
   quality?: number;
   format?: "webp" | "avif" | "original";
@@ -48,7 +50,9 @@ export async function optimizeImage(
   const stat = await fs.promises.stat(src);
   const originalSizeBytes = stat.size;
 
-  let pipeline = sharp(src, {
+  // Read into buffer to ensure no lingering OS file handles in libvips
+  const inputBuffer = await fs.promises.readFile(src);
+  let pipeline = sharp(inputBuffer, {
     animated: options.preserveAnimation ?? true,
   });
 
@@ -170,9 +174,16 @@ export async function optimizeImage(
     };
   }
 
-  // Create destination directory and write
+  // Create destination directory and write atomically via temp file
   await fs.promises.mkdir(path.dirname(dest), { recursive: true });
-  await fs.promises.writeFile(dest, buffer);
+  const tempPath = `${dest}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
+  await fs.promises.writeFile(tempPath, buffer);
+  try {
+    await fs.promises.rename(tempPath, dest);
+  } catch {
+    await fs.promises.copyFile(tempPath, dest);
+    await fs.promises.unlink(tempPath).catch(() => {});
+  }
 
   const savedBytes = Math.max(0, originalSizeBytes - optimizedSizeBytes);
   const savedPercentage = Number(

@@ -49,8 +49,11 @@ export async function extractFontMetadata(
   try {
     const buf = Buffer.alloc(4);
     const fd = await fs.promises.open(filePath, "r");
-    await fd.read(buf, 0, 4, 0);
-    await fd.close();
+    try {
+      await fd.read(buf, 0, 4, 0);
+    } finally {
+      await fd.close();
+    }
 
     const format = detectFontFormat(buf, ext);
 

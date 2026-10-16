@@ -6,6 +6,7 @@
 
 import { Command } from "commander";
 import path from "node:path";
+import fs from "node:fs";
 
 import { createContext, type OptimizationPolicy } from "@assetdiet/core";
 import { scanRepository } from "@assetdiet/scanner";
@@ -15,9 +16,11 @@ import { optimizeImage } from "@assetdiet/optimizer-images";
 import { optimizeSvg } from "@assetdiet/optimizer-svg";
 import { optimizeVideo } from "@assetdiet/optimizer-video";
 import { optimize3D } from "@assetdiet/optimizer-3d";
+import { analyzeReferences } from "@assetdiet/reference-analyzer";
 import {
   beginTransaction,
   stageFileModification,
+  stageFileDeletion,
   commitTransaction,
   rollbackTransaction,
 } from "@assetdiet/transactions";
@@ -27,7 +30,16 @@ import { runDoctor } from "./doctor.js";
 import { runUninstall } from "./uninstall.js";
 import { startMcpServer } from "./mcp.js";
 
-const PACKAGE_VERSION = "0.1.0";
+const PACKAGE_VERSION = "0.1.1";
+
+// Ensure low-level stream close EIO race conditions never crash the process
+process.on("uncaughtException", (err: any) => {
+  if (err && err.code === "EIO" && err.syscall === "close") {
+    return;
+  }
+  console.error("Uncaught error:", err);
+  process.exit(1);
+});
 
 const program = new Command();
 
@@ -508,6 +520,9 @@ program
       isDry,
     );
 
+    // Run reference analysis so duplicate handling can detect active code references
+    await analyzeReferences(root, scan.assets);
+
     console.log(
       `\n⚡ Running AssetDiet Optimization on ${root} (${isDry ? "DRY RUN" : "APPLYING"})`,
     );
@@ -517,6 +532,97 @@ program
     let savedBytesTotal = 0;
 
     for (const task of plan.tasks) {
+      if (task.action === "remove-duplicate") {
+        const matchingAsset = scan.assets.find(
+          (a) => a.path === task.assetPath,
+        );
+        const hasCodeReferences =
+          matchingAsset &&
+          (matchingAsset.isUnreferenced === false ||
+            matchingAsset.references.length > 0);
+
+        if (isDry) {
+          if (hasCodeReferences) {
+            console.log(
+              `  [SIMULATED] ${path.relative(root, task.assetPath)}: -${formatBytes(task.estimatedSavingsBytes)} (duplicate has active code references; would preserve and compress)`,
+            );
+          } else {
+            console.log(
+              `  [SIMULATED DEDUPLICATION] ${path.relative(root, task.assetPath)}: -${formatBytes(task.estimatedSavingsBytes)} (exact duplicate removed, 0 code references)`,
+            );
+          }
+          savedBytesTotal += task.estimatedSavingsBytes;
+          continue;
+        }
+
+        if (hasCodeReferences) {
+          // If the file has active code references, DO NOT delete it in safe policy.
+          // Instead, compress it in-place and preserve the filename so code imports never break!
+          process.stderr.write(
+            `  ⏳ Compressing referenced duplicate [${task.assetType.toUpperCase()}] ${path.relative(root, task.assetPath)}...\r`,
+          );
+          if (tx) {
+            await stageFileModification(tx, task.assetPath);
+          }
+          if (task.assetType === "image") {
+            const res = await optimizeImage(
+              task.assetPath,
+              task.assetPath,
+              {},
+              options.policy as OptimizationPolicy,
+            );
+            process.stderr.write(
+              "                                                                                \r",
+            );
+            if (!res.skipped) {
+              console.log(
+                `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${formatBytes(res.originalSizeBytes)} -> ${formatBytes(res.optimizedSizeBytes)} (-${res.savedPercentage}%) (duplicate preserved due to active code references)`,
+              );
+              savedBytesTotal += res.savedBytes;
+            } else {
+              console.log(
+                `  [SKIPPED] ${path.relative(root, task.assetPath)}: preserved (active code references)`,
+              );
+            }
+          } else if (task.assetType === "svg") {
+            const res = await optimizeSvg(
+              task.assetPath,
+              task.assetPath,
+              {},
+              options.policy as OptimizationPolicy,
+            );
+            process.stderr.write(
+              "                                                                                \r",
+            );
+            if (!res.skipped) {
+              console.log(
+                `  [OPTIMIZED] ${path.relative(root, task.assetPath)}: ${formatBytes(res.originalSizeBytes)} -> ${formatBytes(res.optimizedSizeBytes)} (-${res.savedPercentage}%) (duplicate preserved due to active code references)`,
+              );
+              savedBytesTotal += res.savedBytes;
+            } else {
+              console.log(
+                `  [SKIPPED] ${path.relative(root, task.assetPath)}: preserved (active code references)`,
+              );
+            }
+          }
+          continue;
+        }
+
+        // 0 code references: Safe to deduplicate!
+        if (tx) {
+          await stageFileDeletion(tx, task.assetPath);
+        }
+        await fs.promises.unlink(task.assetPath);
+        process.stderr.write(
+          "                                                                                \r",
+        );
+        console.log(
+          `  [DEDUPLICATED] ${path.relative(root, task.assetPath)}: -${formatBytes(task.estimatedSavingsBytes)} (exact duplicate removed, 0 code references)`,
+        );
+        savedBytesTotal += task.estimatedSavingsBytes;
+        continue;
+      }
+
       if (isDry) {
         console.log(
           `  [SIMULATED] ${path.relative(root, task.assetPath)}: -${formatBytes(task.estimatedSavingsBytes)}`,

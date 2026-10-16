@@ -85,6 +85,7 @@ export async function stageFileModification(
   tx: Transaction,
   originalPath: string,
   newPath?: string,
+  opType: "write" | "delete" = "write",
 ): Promise<string> {
   safeResolve(tx.root, originalPath);
 
@@ -104,7 +105,7 @@ export async function stageFileModification(
     }
 
     tx.operations.push({
-      type: "write",
+      type: opType,
       originalPath: normalizePath(originalPath),
       backupPath: normalizePath(backupPath),
       newPath: newPath ? normalizePath(newPath) : undefined,
@@ -115,6 +116,17 @@ export async function stageFileModification(
   }
 
   return backupPath;
+}
+
+/**
+ * Stage a file deletion: copy original to backup before unlinking,
+ * recording a "delete" op in the journal so rollback can restore it.
+ */
+export async function stageFileDeletion(
+  tx: Transaction,
+  originalPath: string,
+): Promise<string> {
+  return stageFileModification(tx, originalPath, undefined, "delete");
 }
 
 /**

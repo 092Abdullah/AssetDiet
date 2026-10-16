@@ -169,9 +169,13 @@ assetdiet optimize [options] [targetPath]
 #### Execution Behavior:
 
 1. Backs up original files to `.assetdiet/backups/<runId>/`.
-2. Records an atomic transaction journal entry before each file modification.
+2. Records an atomic transaction journal entry before each file modification or deletion.
 3. Optimizes files into temporary files (`.tmp.<id>`), validates output integrity, then atomically swaps them via `fs.rename`.
-4. Outputs the unique `Run ID` and exact rollback command.
+4. **Reference-Aware Deduplication**:
+   - Exact duplicate byte copies are verified against codebase references.
+   - If a duplicate copy has **0 code references**, it is safely deduplicated (backed up to `.assetdiet/backups/<runId>/` and deleted to recover disk space).
+   - If a duplicate copy has **active code references** (e.g. imported or referenced in HTML/CSS/JS), it is preserved and compressed in place to prevent broken imports.
+5. Outputs the unique `Run ID` and exact rollback command.
 
 ---
 

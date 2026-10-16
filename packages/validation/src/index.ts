@@ -10,6 +10,8 @@ import { spawn } from "node:child_process";
 import { NodeIO } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 
+sharp.cache(false);
+
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
@@ -33,8 +35,13 @@ export async function validateImage(
   const warnings: string[] = [];
 
   try {
-    const origMeta = await sharp(originalPath).metadata();
-    const optMeta = await sharp(optimizedPath).metadata();
+    const origBuf = await fs.promises.readFile(originalPath);
+    const optBuf =
+      originalPath === optimizedPath
+        ? origBuf
+        : await fs.promises.readFile(optimizedPath);
+    const origMeta = await sharp(origBuf).metadata();
+    const optMeta = await sharp(optBuf).metadata();
 
     if (!optMeta.width || !optMeta.height) {
       errors.push("Optimized image has missing or 0 dimensions");
@@ -185,8 +192,11 @@ export async function validateVideo(
       // If ffprobe is not installed on the system, perform basic container header validation
       const buffer = Buffer.alloc(16);
       const fd = await fs.promises.open(optimizedPath, "r");
-      await fd.read(buffer, 0, 16, 0);
-      await fd.close();
+      try {
+        await fd.read(buffer, 0, 16, 0);
+      } finally {
+        await fd.close();
+      }
 
       const hex = buffer.toString("hex");
       const isMp4 = hex.includes("66747970"); // 'ftyp'

@@ -81,16 +81,12 @@ async function buildIgnoreFilter(
 
 /**
  * Compute SHA-256 hash of a file's content.
+ * Uses readFile to ensure the underlying OS file descriptor is fully closed
+ * before the hash is returned.
  */
 async function hashFile(filePath: string): Promise<string> {
-  const hash = crypto.createHash("sha256");
-  const stream = fs.createReadStream(filePath);
-
-  return new Promise<string>((resolve, reject) => {
-    stream.on("data", (chunk) => hash.update(chunk));
-    stream.on("end", () => resolve(hash.digest("hex")));
-    stream.on("error", reject);
-  });
+  const content = await fs.promises.readFile(filePath);
+  return crypto.createHash("sha256").update(content).digest("hex");
 }
 
 /**

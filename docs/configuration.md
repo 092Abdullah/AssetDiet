@@ -17,6 +17,12 @@ AssetDiet uses three standardized policy levels to govern how aggressively files
 > [!IMPORTANT]
 > The `audit` command is strictly read-only regardless of policy choice.
 
+### Duplicate Asset Handling
+
+- When exact byte duplicates are found (identical SHA-256 hash), AssetDiet determines if the duplicate copies are referenced in codebase files (HTML, JS, TS, CSS, JSON).
+- **Unreferenced duplicates (0 code references)**: Safely deduplicated by removing the redundant copy and reclaiming disk space. Original files are backed up to `.assetdiet/backups/<runId>/`.
+- **Referenced duplicates (active code references)**: Preserved and compressed in place so project imports and tags never break.
+
 ---
 
 ## Ignoring Files
