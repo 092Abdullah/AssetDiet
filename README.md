@@ -24,7 +24,7 @@
 <br />
 
 <a href="#-one-command-setup">
-  <img src="docs/assets/assetdiet-demo.svg" alt="AssetDiet terminal demo showing audit, savings breakdown, and optimization" width="880" />
+  <img src="docs/assets/assetdiet-demo.gif" alt="AssetDiet terminal demo showing audit, savings breakdown, and optimization" width="880" />
 </a>
 
 </div>
