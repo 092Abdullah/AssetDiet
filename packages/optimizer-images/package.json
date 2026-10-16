@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@assetdiet/core": "workspace:*",
-    "sharp": "0.33.5"
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@assetdiet/typescript-config": "workspace:*",

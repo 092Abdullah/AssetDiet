@@ -33,7 +33,7 @@ import { runDoctor } from "./doctor.js";
 import { runUninstall } from "./uninstall.js";
 import { startMcpServer } from "./mcp.js";
 
-const PACKAGE_VERSION = "0.1.2";
+const PACKAGE_VERSION = "0.1.3";
 
 // Ensure low-level stream close EIO race conditions never crash the process
 process.on("uncaughtException", (err: any) => {

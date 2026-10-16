@@ -48,7 +48,7 @@ program
   .description(
     "AssetDiet: Full-repository asset intelligence and optimization toolkit",
   )
-  .version("0.1.2");
+  .version("0.1.3");
 
 // scan
 program

@@ -22,7 +22,7 @@
     "@assetdiet/core": "workspace:*",
     "@gltf-transform/core": "^4.0.0",
     "@gltf-transform/extensions": "^4.0.0",
-    "sharp": "0.33.5"
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@assetdiet/typescript-config": "workspace:*",

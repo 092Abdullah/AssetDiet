@@ -154,7 +154,7 @@ export interface SetupResult {
 /**
  * Determine the exact MCP registration block for assetdiet-mcp.
  */
-export function getMcpRegistration(version = "0.1.2") {
+export function getMcpRegistration(version = "0.1.3") {
   return {
     command: "npx",
     args: ["--yes", `assetdiet-mcp@${version}`, "mcp"],
@@ -194,7 +194,7 @@ export function resolveClientConfigPath(
  */
 export function planClientSetup(
   client: ClientConfigSpec,
-  version = "0.1.2",
+  version = "0.1.3",
   projectDir?: string,
 ): SetupProposal {
   const { path: configPath, exists } = resolveClientConfigPath(
@@ -319,7 +319,7 @@ export async function applyProposal(proposal: SetupProposal): Promise<{
 export async function runSetup(
   options: SetupOptions = {},
 ): Promise<SetupResult> {
-  const version = options.version ?? "0.1.2";
+  const version = options.version ?? "0.1.3";
   const targetClients =
     options.client && options.client !== "all"
       ? SUPPORTED_CLIENTS.filter(
