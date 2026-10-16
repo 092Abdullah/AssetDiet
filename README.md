@@ -48,9 +48,9 @@ npx -y assetdiet-mcp@latest setup --yes
 ### Real-World Results
 
 ```
-public/hero.png          1.8 MB  →   42 KB   (−97.7%)
-public/icons/logo.svg     18 KB  →  3.1 KB   (−83.0%)
-models/character.glb     4.2 MB  →  1.1 MB   (−74.0%)
+public/hero.png          4.8 MB  →  642 KB   (−86.6%)   balanced
+public/icons/logo.svg    184 KB  →   42 KB   (−77.2%)   safe
+models/character.glb     8.6 MB  →  3.2 MB   (−62.8%)   balanced
 ```
 
 ---
