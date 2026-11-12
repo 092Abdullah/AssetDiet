@@ -1,12 +1,14 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/assetdiet-logo-dark.png" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/assetdiet-logo-light.png" />
-  <img src="docs/assets/assetdiet-logo-light.png" alt="AssetDiet" width="420" />
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/assetdiet-hero.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/assetdiet-hero.svg" />
+  <img src="docs/assets/assetdiet-hero.svg" alt="AssetDiet — Asset intelligence for AI coding agents" width="960" />
 </picture>
 
 <br /><br />
+
+# AssetDiet
 
 **Asset intelligence for AI coding agents — audit, optimize, and roll back media safely.**
 
@@ -18,6 +20,12 @@
 [![Privacy](https://img.shields.io/badge/Privacy-100%25_Local-C4F269.svg?labelColor=151719)](docs/security.md)
 
 [One-Command Setup](#-one-command-setup) · [Try With Your Agent](#-try-this-with-your-agent) · [Code Migration](#-beyond-files-codebase-reference-migration) · [Supported Formats](#-supported-asset-formats) · [Safety & Rollback](#-safety--atomic-rollback) · [Docs](#-documentation)
+
+<br />
+
+<a href="#-one-command-setup">
+  <img src="docs/assets/assetdiet-demo.gif" alt="AssetDiet terminal demo showing audit, savings breakdown, and optimization" width="880" />
+</a>
 
 </div>
 
