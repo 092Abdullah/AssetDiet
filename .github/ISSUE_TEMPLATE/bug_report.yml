@@ -1,0 +1,70 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in AssetDiet
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!  
+        Please fill out the sections below as completely as possible.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug.
+      placeholder: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps that reliably reproduce the issue.
+      placeholder: |
+        1. Run `npx assetdiet-mcp@latest audit . --policy safe`
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened (include error messages / logs).
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: |
+        - OS and version
+        - Node.js version (`node -v`)
+        - AssetDiet / assetdiet-mcp version
+        - How you installed it (npx, global, from source, etc.)
+      placeholder: |
+        - OS: macOS 15.1 / Ubuntu 24.04 / Windows 11
+        - Node: v22.x
+        - assetdiet-mcp: 0.1.x
+        - Installation: npx
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Screenshots, sample assets (if small), related issues, or anything else that might help.
