@@ -24,7 +24,8 @@ mcp:
           - 'apps/mcp-server/**'
           - 'packages/assetdiet-mcp/**'
 
-coren  - changed-files:
+core:
+  - changed-files:
       - any-glob-to-any-file:
           - 'packages/core/**'
           - 'packages/scanner/**'
