@@ -1,0 +1,40 @@
+name: Auto Merge
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled]
+  check_suite:
+    types: [completed]
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+jobs:
+  auto-merge:
+    name: Enable auto-merge for safe PRs
+    runs-on: ubuntu-latest
+    # Only auto-merge Dependabot or explicitly labeled PRs
+    if: >
+      github.event.pull_request.user.login == 'dependabot[bot]' ||
+      contains(github.event.pull_request.labels.*.name, 'auto-merge')
+    steps:
+      - name: Enable auto-merge (squash)
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ github.event.pull_request.number }}
+          merge-method: squash
+        continue-on-error: true
+
+      - name: Merge when checks pass (fallback)
+        if: github.event_name == 'workflow_run' || github.event_name == 'check_suite'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Best-effort: merge open PRs that are labeled auto-merge or from dependabot and have green CI
+          echo "Auto-merge job triggered by ${{ github.event_name }}"

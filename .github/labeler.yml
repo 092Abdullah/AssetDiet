@@ -1,0 +1,46 @@
+# Path-based labels for PR Automation workflow
+# https://github.com/actions/labeler
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+          - '**/*.md'
+          - 'README.md'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/**'
+
+cli:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'apps/cli/**'
+
+mcp:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'apps/mcp-server/**'
+          - 'packages/assetdiet-mcp/**'
+
+core:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/core/**'
+          - 'packages/scanner/** mixed'
+          - 'packages/planner/**'
+          - 'packages/validation/**'
+          - 'packages/transactions/**'
+          - 'packages/reference-analyzer/**'
+
+optimizers:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/optimizer-*/**'
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/__tests__/**'
+          - '**/*.test.ts'
