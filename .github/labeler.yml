@@ -24,11 +24,10 @@ mcp:
           - 'apps/mcp-server/**'
           - 'packages/assetdiet-mcp/**'
 
-core:
-  - changed-files:
+coren  - changed-files:
       - any-glob-to-any-file:
           - 'packages/core/**'
-          - 'packages/scanner/** mixed'
+          - 'packages/scanner/**'
           - 'packages/planner/**'
           - 'packages/validation/**'
           - 'packages/transactions/**'
