@@ -54,7 +54,7 @@
     "@gltf-transform/core": "^4.0.0",
     "@gltf-transform/extensions": "^4.0.0",
     "@gltf-transform/functions": "^4.0.0",
-    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "commander": "^12.1.0",
     "fast-glob": "^3.3.2",
     "ignore": "^5.3.2",
