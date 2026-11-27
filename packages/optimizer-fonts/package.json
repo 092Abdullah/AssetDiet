@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@assetdiet/typescript-config": "workspace:*",
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.6.6",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8",
     "rimraf": "^5.0.10"

@@ -29,11 +29,11 @@
     "@assetdiet/validation": "workspace:*",
     "@assetdiet/transactions": "workspace:*",
     "@assetdiet/reporting": "workspace:*",
-    "commander": "^12.1.0"
+    "commander": "^15.1.0"
   },
   "devDependencies": {
     "@assetdiet/typescript-config": "workspace:*",
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.6.6",
     "sharp": "^0.35.5",
     "@gltf-transform/core": "^4.0.0",
     "typescript": "^5.7.2",
