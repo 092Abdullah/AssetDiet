@@ -29,7 +29,7 @@
     "@assetdiet/validation": "workspace:*",
     "@assetdiet/transactions": "workspace:*",
     "@assetdiet/reporting": "workspace:*",
-    "commander": "^12.1.0"
+    "commander": "^15.1.0"
   },
   "devDependencies": {
     "@assetdiet/typescript-config": "workspace:*",
