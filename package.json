@@ -28,7 +28,7 @@
   "devDependencies": {
     "@assetdiet/typescript-config": "workspace:*",
     "@changesets/cli": "^2.27.9",
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.6.6",
     "@typescript-eslint/eslint-plugin": "^8.74.0",
     "@typescript-eslint/parser": "^8.74.0",
     "eslint": "^9.0.0",
